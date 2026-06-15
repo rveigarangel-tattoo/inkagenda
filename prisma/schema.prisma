@@ -9,19 +9,22 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  name         String
-  email        String        @unique
-  password     String
-  role         String        @default("ARTIST")
-  specialty    String?
-  bio          String?
-  hourlyRate   Float?
-  avatarColor  String        @default("#d4a853")
-  createdAt    DateTime      @default(now())
-  appointments Appointment[]
-  accounts     Account[]
-  sessions     Session[]
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  password      String
+  role          String        @default("artist")
+  phone         String?
+  commissionPct Float         @default(50)
+  avatarUrl     String?
+  avatarColor   String        @default("#7c3aed")
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  appointments  Appointment[]
+  transactions  Transaction[]
+  accounts      Account[]
+  sessions      Session[]
+  clients       Client[]
 }
 
 model Account {
@@ -60,25 +63,49 @@ model VerificationToken {
 
 model Client {
   id           String        @id @default(cuid())
+  studioId     String?
+  artistId     String?
   name         String
   phone        String?
   email        String?
+  birthdate    DateTime?
   notes        String?
+  healthNotes  String?
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+  artist       User?         @relation(fields: [artistId], references: [id])
 }
 
 model Appointment {
-  id          String   @id @default(cuid())
-  date        DateTime
-  duration    Int      @default(60)
-  service     String   @default("TATTOO")
-  description String?
-  price       Float
-  status      String   @default("SCHEDULED")
-  artistId    String
-  clientId    String
-  createdAt   DateTime @default(now())
-  artist      User     @relation(fields: [artistId], references: [id])
-  client      Client   @relation(fields: [clientId], references: [id])
+  id              String        @id @default(cuid())
+  clientId        String
+  artistId        String
+  service         String
+  value           Float         @default(0)
+  deposit         Float         @default(0)
+  date            DateTime
+  durationMinutes Int           @default(60)
+  status          String        @default("pending")
+  notes           String?
+  style           String?
+  paymentMethod   String?
+  createdAt       DateTime      @default(now())
+  client          Client        @relation(fields: [clientId], references: [id])
+  artist          User          @relation(fields: [artistId], references: [id])
+  transactions    Transaction[]
+}
+
+model Transaction {
+  id            String       @id @default(cuid())
+  appointmentId String?
+  artistId      String?
+  type          String
+  category      String?
+  description   String
+  amount        Float
+  paymentMethod String?
+  date          DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  artist        User?        @relation(fields: [artistId], references: [id])
 }

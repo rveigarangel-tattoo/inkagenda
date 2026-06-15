@@ -3,26 +3,51 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const { searchParams } = new URL(request.url)
-  const month = searchParams.get("month")
-  const year = searchParams.get("year")
+  const { searchParams } = new URL(req.url)
   const artistId = searchParams.get("artistId")
-  const where: Record<string, unknown> = {}
-  if (session.user.role !== "ADMIN") { where.artistId = (session.user as any).id } else if (artistId) { where.artistId = artistId }
-  if (month && year) { const start = new Date(parseInt(year), parseInt(month)-1, 1); const end = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59); where.date = { gte: start, lte: end } }
-  const appointments = await prisma.appointment.findMany({ where, include: { client: true, artist: { select: { id: true, name: true, avatarColor: true } } }, orderBy: { date: "asc" } })
+  const from = searchParams.get("from")
+  const to = searchParams.get("to")
+
+  const where: any = {}
+  if ((session.user as any).role === "artist") where.artistId = (session.user as any).id
+  else if (artistId) where.artistId = artistId
+  if (from || to) {
+    where.date = {}
+    if (from) where.date.gte = new Date(from)
+    if (to) where.date.lte = new Date(to)
+  }
+
+  const appointments = await prisma.appointment.findMany({
+    where,
+    include: { client: true, artist: true },
+    orderBy: { date: "asc" },
+  })
   return NextResponse.json(appointments)
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const body = await request.json()
-  const { clientId, date, duration, service, description, price, status, artistId } = body
-  const finalArtistId = session.user.role === "ADMIN" && artistId ? artistId : (session.user as any).id
-  const appointment = await prisma.appointment.create({ data: { clientId, date: new Date(date), duration: parseInt(duration), service, description, price: parseFloat(price), status: status || "SCHEDULED", artistId: finalArtistId }, include: { client: true, artist: { select: { id: true, name: true, avatarColor: true } } } })
-  return NextResponse.json(appointment)
+  const body = await req.json()
+  const artistId = (session.user as any).role === "artist" ? (session.user as any).id : body.artistId
+  const appt = await prisma.appointment.create({
+    data: {
+      clientId: body.clientId,
+      artistId,
+      service: body.service,
+      style: body.style || null,
+      value: body.value ?? 0,
+      deposit: body.deposit ?? 0,
+      date: new Date(body.date),
+      durationMinutes: body.durationMinutes ?? 60,
+      status: body.status ?? "pending",
+      paymentMethod: body.paymentMethod || null,
+      notes: body.notes || null,
+    },
+    include: { client: true, artist: true },
+  })
+  return NextResponse.json(appt, { status: 201 })
 }

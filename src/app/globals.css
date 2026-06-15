@@ -4,33 +4,68 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 210 20% 98%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 262 83% 96%;
+    --accent-foreground: 262 83% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 6%;
     --foreground: 0 0% 96%;
-    --card: 0 0% 7%;
+    --card: 0 0% 10%;
     --card-foreground: 0 0% 96%;
-    --popover: 0 0% 7%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 96%;
-    --primary: 38 65% 58%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 12%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 96%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 0 0% 15%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 262 40% 20%;
     --accent-foreground: 0 0% 96%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 96%;
     --border: 0 0% 16%;
     --input: 0 0% 16%;
-    --ring: 38 65% 58%;
-    --radius: 0.75rem;
+    --ring: 262 83% 58%;
   }
 }
 
 @layer base {
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground; font-family: 'Inter', system-ui, sans-serif; }
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
-  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
 }

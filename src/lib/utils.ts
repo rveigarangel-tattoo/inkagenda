@@ -1,36 +1,65 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0)
 }
 
-export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(date))
+export function formatDate(date: Date | string, fmt: string = "dd/MM/yyyy"): string {
+  return format(new Date(date), fmt, { locale: ptBR })
 }
 
 export function formatTime(date: Date | string): string {
-  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(date))
-}
-
-export const SERVICE_LABELS: Record<string, string> = {
-  TATTOO: "Tatuagem", TOUCHUP: "Retoque", CONSULTATION: "Consulta", PIERCING: "Piercing",
+  return format(new Date(date), "HH:mm", { locale: ptBR })
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Agendado", CONFIRMED: "Confirmado", IN_PROGRESS: "Em Andamento", COMPLETED: "Concluído", CANCELLED: "Cancelado",
+  pending: "Pendente",
+  confirmed: "Confirmado",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+  no_show: "Não Compareceu",
 }
 
-export const STATUS_COLORS: Record<string, string> = {
-  SCHEDULED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  CONFIRMED: "bg-green-500/20 text-green-400 border-green-500/30",
-  IN_PROGRESS: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  COMPLETED: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-  CANCELLED: "bg-red-500/20 text-red-400 border-red-500/30",
+export const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  confirmed: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  completed: "bg-green-500/15 text-green-400 border-green-500/30",
+  cancelled: "bg-red-500/15 text-red-400 border-red-500/30",
+  no_show: "bg-gray-500/15 text-gray-400 border-gray-500/30",
 }
 
-export const AVATAR_COLORS = ["#d4a853","#e879f9","#34d399","#60a5fa","#f87171","#fb923c","#a78bfa","#2dd4bf"]
+export const ARTIST_PALETTE = [
+  "#7c3aed",
+  "#ec4899",
+  "#06b6d4",
+  "#f59e0b",
+  "#10b981",
+  "#ef4444",
+  "#8b5cf6",
+  "#14b8a6",
+]
+
+export function artistColor(seed: string): string {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return ARTIST_PALETTE[h % ARTIST_PALETTE.length]
+}
+
+export function getInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("")
+}
+
+export const PAYMENT_METHODS = ["Dinheiro", "PIX", "Cartão de Crédito", "Cartão de Débito"]
+export const TATTOO_STYLES = ["Realismo", "Blackwork", "Aquarela", "Old School", "Fineline", "Geométrico", "Pontilhismo", "Tribal"]

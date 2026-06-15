@@ -6,13 +6,13 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "InkAgenda - Studio Management",
-  description: "Sistema de agendamento para estúdio de tattoo",
+  title: "InkFlow - Gestão de Estúdio de Tatuagem",
+  description: "Sistema completo de gestão para estúdios de tatuagem",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

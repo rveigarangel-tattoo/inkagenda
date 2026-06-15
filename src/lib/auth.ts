@@ -16,20 +16,34 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
         const user = await prisma.user.findUnique({ where: { email: credentials.email } })
-        if (!user) return null
+        if (!user || !user.isActive) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
-        return { id: user.id, email: user.email, name: user.name, role: user.role, specialty: user.specialty, avatarColor: user.avatarColor }
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          avatarColor: user.avatarColor,
+        }
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) { token.id = user.id; token.role = (user as any).role; token.specialty = (user as any).specialty; token.avatarColor = (user as any).avatarColor }
+      if (user) {
+        token.id = (user as any).id
+        token.role = (user as any).role
+        token.avatarColor = (user as any).avatarColor
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) { (session.user as any).id = token.id; (session.user as any).role = token.role; (session.user as any).specialty = token.specialty; (session.user as any).avatarColor = token.avatarColor }
+      if (session.user) {
+        ;(session.user as any).id = token.id
+        ;(session.user as any).role = token.role
+        ;(session.user as any).avatarColor = token.avatarColor
+      }
       return session
     },
   },

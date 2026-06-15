@@ -1,21 +1,69 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const where: Record<string, unknown> = {}
-  if (session.user.role !== "ADMIN") where.artistId = (session.user as any).id
   const now = new Date()
-  const [todayCount, weekAppts, totalClients, pendingCount, upcomingAppts] = await Promise.all([
-    prisma.appointment.count({ where: { ...where, date: { gte: startOfDay(now), lte: endOfDay(now) } } }),
-    prisma.appointment.findMany({ where: { ...where, date: { gte: startOfWeek(now,{weekStartsOn:1}), lte: endOfWeek(now,{weekStartsOn:1}) }, status: { in: ["COMPLETED","IN_PROGRESS"] } }, select: { price: true } }),
-    prisma.client.count(),
-    prisma.appointment.count({ where: { ...where, status: "SCHEDULED" } }),
-    prisma.appointment.findMany({ where: { ...where, date: { gte: startOfDay(now) }, status: { notIn: ["CANCELLED","COMPLETED"] } }, include: { client: true, artist: { select: { name: true, avatarColor: true } } }, orderBy: { date: "asc" }, take: 8 }),
-  ])
-  return NextResponse.json({ todayAppointments: todayCount, weekRevenue: weekAppts.reduce((s,a) => s+a.price, 0), totalClients, pendingConfirmations: pendingCount, upcomingAppointments: upcomingAppts })
+  const monthStart = startOfMonth(now)
+  const monthEnd = endOfMonth(now)
+
+  const monthAppts = await prisma.appointment.findMany({
+    where: { date: { gte: monthStart, lte: monthEnd } },
+    include: { artist: true, client: true },
+  })
+
+  const completed = monthAppts.filter((a) => a.status === "completed")
+  const revenue = completed.reduce((s, a) => s + a.value, 0)
+  const completionRate = monthAppts.length ? (completed.length / monthAppts.length) * 100 : 0
+  const avgTicket = completed.length ? revenue / completed.length : 0
+
+  const todayAppts = await prisma.appointment.findMany({
+    where: { date: { gte: startOfDay(now), lte: endOfDay(now) } },
+    include: { artist: true, client: true },
+    orderBy: { date: "asc" },
+  })
+
+  // artist ranking (this month)
+  const artists = await prisma.user.findMany({ where: { role: "artist" } })
+  const ranking = artists
+    .map((a) => {
+      const appts = completed.filter((x) => x.artistId === a.id)
+      const rev = appts.reduce((s, x) => s + x.value, 0)
+      return {
+        id: a.id,
+        name: a.name,
+        avatarColor: a.avatarColor,
+        appointments: monthAppts.filter((x) => x.artistId === a.id).length,
+        revenue: rev,
+        commission: rev * (a.commissionPct / 100),
+      }
+    })
+    .sort((x, y) => y.revenue - x.revenue)
+
+  // 6-month revenue
+  const monthly: { month: string; revenue: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const m = subMonths(now, i)
+    const s = startOfMonth(m)
+    const e = endOfMonth(m)
+    const appts = await prisma.appointment.findMany({
+      where: { status: "completed", date: { gte: s, lte: e } },
+    })
+    monthly.push({
+      month: format(m, "MMM", { locale: ptBR }),
+      revenue: appts.reduce((sum, a) => sum + a.value, 0),
+    })
+  }
+
+  return NextResponse.json({
+    kpis: { revenue, appointments: monthAppts.length, completionRate, avgTicket },
+    todayAppointments: todayAppts,
+    ranking,
+    monthlyRevenue: monthly,
+  })
 }
