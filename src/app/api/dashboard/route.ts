@@ -12,15 +12,33 @@ export async function GET() {
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
 
-  const monthAppts = await prisma.appointment.findMany({
-    where: { date: { gte: monthStart, lte: monthEnd } },
-    include: { artist: true, client: true },
-  })
+  const prevStart = startOfMonth(subMonths(now, 1))
+  const prevEnd = endOfMonth(subMonths(now, 1))
+
+  const [monthAppts, prevAppts] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+      include: { artist: true, client: true },
+    }),
+    prisma.appointment.findMany({
+      where: { date: { gte: prevStart, lte: prevEnd } },
+    }),
+  ])
 
   const completed = monthAppts.filter((a) => a.status === "completed")
   const revenue = completed.reduce((s, a) => s + a.value, 0)
   const completionRate = monthAppts.length ? (completed.length / monthAppts.length) * 100 : 0
   const avgTicket = completed.length ? revenue / completed.length : 0
+
+  const prevCompleted = prevAppts.filter((a) => a.status === "completed")
+  const prevRevenue = prevCompleted.reduce((s, a) => s + a.value, 0)
+  const prevAvgTicket = prevCompleted.length ? prevRevenue / prevCompleted.length : 0
+  const prevCompletionRate = prevAppts.length ? (prevCompleted.length / prevAppts.length) * 100 : 0
+
+  function pctChange(current: number, prev: number) {
+    if (prev === 0) return undefined
+    return ((current - prev) / prev) * 100
+  }
 
   const todayAppts = await prisma.appointment.findMany({
     where: { date: { gte: startOfDay(now), lte: endOfDay(now) } },
@@ -61,7 +79,13 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    kpis: { revenue, appointments: monthAppts.length, completionRate, avgTicket },
+    kpis: {
+      revenue, appointments: monthAppts.length, completionRate, avgTicket,
+      revenueChange: pctChange(revenue, prevRevenue),
+      appointmentsChange: pctChange(monthAppts.length, prevAppts.length),
+      completionRateChange: pctChange(completionRate, prevCompletionRate),
+      avgTicketChange: pctChange(avgTicket, prevAvgTicket),
+    },
     todayAppointments: todayAppts,
     ranking,
     monthlyRevenue: monthly,

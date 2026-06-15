@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Plus, Mail, Phone, Percent, CalendarCheck } from "lucide-react"
+import { Plus, Mail, Phone, Percent, CalendarCheck, Palette } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -134,7 +135,12 @@ export default function TeamPage() {
           ))}
         </div>
       ) : artists.length === 0 ? (
-        <p className="p-8 text-center text-sm text-muted-foreground">Nenhum tatuador cadastrado.</p>
+        <EmptyState
+          icon={Palette}
+          title="Nenhum tatuador cadastrado"
+          description="Adicione os artistas do estúdio para gerenciar agendamentos e comissões."
+          action={{ label: "Adicionar tatuador", onClick: () => setOpen(true) }}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {artists.map((a: any) => (

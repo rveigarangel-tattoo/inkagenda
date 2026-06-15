@@ -1,9 +1,10 @@
 "use client"
 import { signOut, useSession } from "next-auth/react"
-import { LogOut, Moon, Sun } from "lucide-react"
+import { LogOut, Moon, Sun, Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Button } from "@/components/ui/button"
+import { CommandPalette } from "@/components/ui/command-palette"
 
 export function Header() {
   const { data: session } = useSession()
@@ -20,10 +21,24 @@ export function Header() {
     document.documentElement.classList.toggle("dark", next)
   }
 
+  function openPalette() {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))
+  }
+
   const user = session?.user
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
       <span className="text-lg font-bold md:hidden">InkFlow</span>
+      {/* Cmd+K search button — desktop only */}
+      <button
+        onClick={openPalette}
+        className="hidden items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground md:flex"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>Buscar...</span>
+        <kbd className="ml-4 rounded border border-border bg-background px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+      </button>
+      <CommandPalette />
       <div className="ml-auto flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema">
           {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

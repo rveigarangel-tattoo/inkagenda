@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, Wallet } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Receipt } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
@@ -65,7 +66,13 @@ export default function FinancesPage() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full" />
+            <div key={i} className="rounded-xl border bg-card p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
+              </div>
+              <Skeleton className="h-7 w-32" />
+            </div>
           ))}
         </div>
       ) : (
@@ -91,23 +98,33 @@ export default function FinancesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="space-y-3 p-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+            <div className="divide-y">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="hidden h-5 w-16 rounded-full sm:block" />
+                  <Skeleton className="h-4 w-20 text-right" />
+                </div>
               ))}
             </div>
           ) : transactions.length === 0 ? (
-            <p className="p-8 text-center text-sm text-muted-foreground">Nenhuma transação registrada.</p>
+            <EmptyState
+              icon={Receipt}
+              title="Nenhuma transação registrada"
+              description="Registre receitas e despesas do estúdio para acompanhar o fluxo de caixa."
+              action={{ label: "Registrar primeira transação", onClick: () => setOpen(true) }}
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Tipo</TableHead>
+                  <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                  <TableHead className="hidden sm:table-cell">Tipo</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Pagamento</TableHead>
+                  <TableHead className="hidden lg:table-cell">Pagamento</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -115,10 +132,10 @@ export default function FinancesPage() {
                   const isIncome = t.type === "income"
                   return (
                     <TableRow key={t.id}>
-                      <TableCell>{formatDate(t.date, "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{t.description}</TableCell>
-                      <TableCell>{t.category || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatDate(t.date, "dd/MM")}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{t.description}</TableCell>
+                      <TableCell className="hidden md:table-cell">{t.category || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span
                           className={cn(
                             "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
@@ -134,7 +151,7 @@ export default function FinancesPage() {
                         {isIncome ? "+" : "-"}
                         {formatCurrency(t.amount)}
                       </TableCell>
-                      <TableCell>{t.paymentMethod || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{t.paymentMethod || "—"}</TableCell>
                     </TableRow>
                   )
                 })}
