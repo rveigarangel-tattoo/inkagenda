@@ -39,15 +39,27 @@ async function main() {
   await prisma.transaction.deleteMany()
   await prisma.appointment.deleteMany()
   await prisma.client.deleteMany()
+  await prisma.invite.deleteMany()
   await prisma.session.deleteMany()
   await prisma.account.deleteMany()
   await prisma.user.deleteMany()
+  await prisma.studio.deleteMany()
+
+  const studio = await prisma.studio.create({
+    data: {
+      name: "InkFlow Studio",
+      commissionPct: 50,
+      plan: "pro",
+    },
+  })
+  console.log("Studio created:", studio.name)
 
   const adminPassword = await bcrypt.hash("Admin@123", 10)
   const artistPassword = await bcrypt.hash("Artist@123", 10)
 
   const admin = await prisma.user.create({
     data: {
+      studioId: studio.id,
       name: "Studio Admin",
       email: "admin@inkflow.com",
       password: adminPassword,
@@ -69,6 +81,7 @@ async function main() {
     const a = artistsData[i]
     const artist = await prisma.user.create({
       data: {
+        studioId: studio.id,
         name: a.name,
         email: a.email,
         password: artistPassword,
@@ -86,6 +99,7 @@ async function main() {
     const first = name.split(" ")[0].toLowerCase()
     const client = await prisma.client.create({
       data: {
+        studioId: studio.id,
         name,
         phone: phone(),
         email: `${first}@email.com`,
@@ -114,6 +128,7 @@ async function main() {
     const value = rand(150, 2500)
     const appt = await prisma.appointment.create({
       data: {
+        studioId: studio.id,
         clientId: pick(clients).id,
         artistId: pick(artists).id,
         service: pick(SERVICES),
@@ -136,6 +151,7 @@ async function main() {
     if (txCount >= 12) break
     await prisma.transaction.create({
       data: {
+        studioId: studio.id,
         appointmentId: appt.id,
         artistId: appt.artistId,
         type: "income",
@@ -154,6 +170,7 @@ async function main() {
     d.setDate(now.getDate() - rand(0, 28))
     await prisma.transaction.create({
       data: {
+        studioId: studio.id,
         artistId: pick(artists).id,
         type: "income",
         category: "Serviço",
@@ -170,6 +187,7 @@ async function main() {
     d.setDate(now.getDate() - rand(0, 28))
     await prisma.transaction.create({
       data: {
+        studioId: studio.id,
         type: "expense",
         category: pick(EXPENSE_CATEGORIES),
         description: `Despesa - ${pick(EXPENSE_CATEGORIES)}`,
@@ -181,6 +199,7 @@ async function main() {
   }
 
   console.log("Seed complete:", {
+    studio: studio.name,
     admin: admin.email,
     artists: artists.length,
     clients: clients.length,

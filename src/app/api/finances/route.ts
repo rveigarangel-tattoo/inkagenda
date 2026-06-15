@@ -7,11 +7,13 @@ import { prisma } from "@/lib/prisma"
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
 
   const transactions = await prisma.transaction.findMany({
+    where: { studioId },
     include: { artist: true, appointment: { include: { client: true } } },
     orderBy: { date: "desc" },
     take: 100,
@@ -21,7 +23,6 @@ export async function GET() {
   const income = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0)
   const expense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0)
 
-  // 30-day cashflow
   const cashflow: { date: string; income: number; expense: number }[] = []
   for (let i = 29; i >= 0; i--) {
     const day = subDays(now, i)
@@ -44,9 +45,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const body = await req.json()
   const tx = await prisma.transaction.create({
     data: {
+      studioId,
       type: body.type,
       category: body.category || null,
       description: body.description,

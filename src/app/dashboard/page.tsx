@@ -84,7 +84,7 @@ export default function DashboardPage() {
               <div key={a.id} className="flex items-center gap-3">
                 <AvatarInitials name={a.artist.name} color={a.artist.avatarColor} size={36} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{a.client.name}</p>
+                  <p className="truncate text-sm font-medium">{a.client?.name ?? "Horário Bloqueado"}</p>
                   <p className="text-xs text-muted-foreground">{formatTime(a.date)} · {a.service}</p>
                 </div>
                 <StatusBadge status={a.status} />

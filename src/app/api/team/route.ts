@@ -8,8 +8,9 @@ import { ARTIST_PALETTE } from "@/lib/utils"
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const artists = await prisma.user.findMany({
-    where: { role: "artist" },
+    where: { studioId, role: "artist" },
     include: { appointments: true },
     orderBy: { name: "asc" },
   })
@@ -21,11 +22,13 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user as any).role !== "admin")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  const studioId = (session.user as any).studioId
   const body = await req.json()
-  const count = await prisma.user.count({ where: { role: "artist" } })
+  const count = await prisma.user.count({ where: { studioId, role: "artist" } })
   const password = await bcrypt.hash(body.password || "Artist@123", 10)
   const artist = await prisma.user.create({
     data: {
+      studioId,
       name: body.name,
       email: body.email,
       password,

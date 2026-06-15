@@ -54,7 +54,13 @@ export default function LoginPage() {
               </Button>
             </form>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              Admin: admin@inkflow.com / Admin@123
+              Demo: admin@inkflow.com / Admin@123
+            </p>
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Novo estúdio?{" "}
+              <a href="/register" className="text-primary hover:underline">
+                Criar conta gratuita
+              </a>
             </p>
           </CardContent>
         </Card>

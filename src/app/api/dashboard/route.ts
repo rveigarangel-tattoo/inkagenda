@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma"
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
@@ -17,11 +18,11 @@ export async function GET() {
 
   const [monthAppts, prevAppts] = await Promise.all([
     prisma.appointment.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { studioId, date: { gte: monthStart, lte: monthEnd } },
       include: { artist: true, client: true },
     }),
     prisma.appointment.findMany({
-      where: { date: { gte: prevStart, lte: prevEnd } },
+      where: { studioId, date: { gte: prevStart, lte: prevEnd } },
     }),
   ])
 
@@ -41,13 +42,12 @@ export async function GET() {
   }
 
   const todayAppts = await prisma.appointment.findMany({
-    where: { date: { gte: startOfDay(now), lte: endOfDay(now) } },
+    where: { studioId, date: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "blocked" } },
     include: { artist: true, client: true },
     orderBy: { date: "asc" },
   })
 
-  // artist ranking (this month)
-  const artists = await prisma.user.findMany({ where: { role: "artist" } })
+  const artists = await prisma.user.findMany({ where: { studioId, role: "artist" } })
   const ranking = artists
     .map((a) => {
       const appts = completed.filter((x) => x.artistId === a.id)
@@ -63,14 +63,13 @@ export async function GET() {
     })
     .sort((x, y) => y.revenue - x.revenue)
 
-  // 6-month revenue
   const monthly: { month: string; revenue: number }[] = []
   for (let i = 5; i >= 0; i--) {
     const m = subMonths(now, i)
     const s = startOfMonth(m)
     const e = endOfMonth(m)
     const appts = await prisma.appointment.findMany({
-      where: { status: "completed", date: { gte: s, lte: e } },
+      where: { studioId, status: "completed", date: { gte: s, lte: e } },
     })
     monthly.push({
       month: format(m, "MMM", { locale: ptBR }),

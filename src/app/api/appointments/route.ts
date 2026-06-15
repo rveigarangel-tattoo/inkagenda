@@ -6,12 +6,13 @@ import { prisma } from "@/lib/prisma"
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const { searchParams } = new URL(req.url)
   const artistId = searchParams.get("artistId")
   const from = searchParams.get("from")
   const to = searchParams.get("to")
 
-  const where: any = {}
+  const where: any = { studioId }
   if ((session.user as any).role === "artist") where.artistId = (session.user as any).id
   else if (artistId) where.artistId = artistId
   if (from || to) {
@@ -31,10 +32,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
   const body = await req.json()
   const artistId = (session.user as any).role === "artist" ? (session.user as any).id : body.artistId
   const appt = await prisma.appointment.create({
     data: {
+      studioId,
       clientId: body.clientId || null,
       artistId,
       service: body.service,

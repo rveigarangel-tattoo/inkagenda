@@ -7,8 +7,39 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model Studio {
+  id            String        @id @default(cuid())
+  name          String        @default("Meu Estúdio")
+  logo          String?
+  commissionPct Float         @default(50)
+  plan          String        @default("free")
+  createdAt     DateTime      @default(now())
+  users         User[]
+  clients       Client[]
+  appointments  Appointment[]
+  transactions  Transaction[]
+  invites       Invite[]
+}
+
+model Invite {
+  id            String    @id @default(cuid())
+  studioId      String
+  name          String
+  email         String?
+  phone         String?
+  role          String    @default("artist")
+  commissionPct Float     @default(50)
+  avatarColor   String    @default("#7c3aed")
+  token         String    @unique @default(cuid())
+  usedAt        DateTime?
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  studio        Studio    @relation(fields: [studioId], references: [id])
+}
+
 model User {
   id            String        @id @default(cuid())
+  studioId      String
   name          String
   email         String        @unique
   password      String
@@ -19,6 +50,7 @@ model User {
   avatarColor   String        @default("#7c3aed")
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
+  studio        Studio        @relation(fields: [studioId], references: [id])
   appointments  Appointment[]
   transactions  Transaction[]
   accounts      Account[]
@@ -62,7 +94,7 @@ model VerificationToken {
 
 model Client {
   id           String        @id @default(cuid())
-  studioId     String?
+  studioId     String
   artistId     String?
   name         String
   phone        String?
@@ -71,12 +103,14 @@ model Client {
   notes        String?
   healthNotes  String?
   createdAt    DateTime      @default(now())
-  appointments Appointment[]
+  studio       Studio        @relation(fields: [studioId], references: [id])
   artist       User?         @relation(fields: [artistId], references: [id])
+  appointments Appointment[]
 }
 
 model Appointment {
   id              String        @id @default(cuid())
+  studioId        String
   clientId        String?
   artistId        String
   service         String
@@ -89,6 +123,7 @@ model Appointment {
   style           String?
   paymentMethod   String?
   createdAt       DateTime      @default(now())
+  studio          Studio        @relation(fields: [studioId], references: [id])
   client          Client?       @relation(fields: [clientId], references: [id])
   artist          User          @relation(fields: [artistId], references: [id])
   transactions    Transaction[]
@@ -96,6 +131,7 @@ model Appointment {
 
 model Transaction {
   id            String       @id @default(cuid())
+  studioId      String
   appointmentId String?
   artistId      String?
   type          String
@@ -105,6 +141,7 @@ model Transaction {
   paymentMethod String?
   date          DateTime     @default(now())
   createdAt     DateTime     @default(now())
+  studio        Studio       @relation(fields: [studioId], references: [id])
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   artist        User?        @relation(fields: [artistId], references: [id])
 }

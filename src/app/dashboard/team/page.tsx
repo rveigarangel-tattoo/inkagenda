@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Plus, Mail, Phone, Percent, CalendarCheck, Palette } from "lucide-react"
+import { Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle, Send, Clock, CheckCircle2, Copy } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,92 +14,175 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
-const schema = z.object({
+const inviteSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Mínimo 6 caracteres").optional().or(z.literal("")),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   commissionPct: z.coerce.number().min(0).max(100),
-  avatarColor: z.string().min(1, "Cor obrigatória"),
+  avatarColor: z.string().min(1),
 })
-type FormValues = z.infer<typeof schema>
+type InviteValues = z.infer<typeof inviteSchema>
 
-function TeamForm({ onSuccess }: { onSuccess?: () => void }) {
-  const { register, handleSubmit, formState } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", password: "", phone: "", commissionPct: 30, avatarColor: "#7c3aed" },
+interface CreatedInvite {
+  token: string
+  name: string
+  email: string | null
+  phone: string | null
+  expiresAt: string
+}
+
+function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void }) {
+  const { register, handleSubmit, formState, reset } = useForm<InviteValues>({
+    resolver: zodResolver(inviteSchema),
+    defaultValues: { name: "", email: "", phone: "", commissionPct: 50, avatarColor: "#7c3aed" },
   })
 
-  async function onSubmit(values: FormValues) {
-    const res = await fetch("/api/team", {
+  async function onSubmit(values: InviteValues) {
+    const res = await fetch("/api/invites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     })
     if (!res.ok) {
-      toast.error("Erro ao criar tatuador")
+      toast.error("Erro ao criar convite")
       return
     }
-    toast.success("Tatuador criado")
-    onSuccess?.()
+    const data = await res.json()
+    onCreated(data)
+    reset()
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label>Nome *</Label>
-        <Input {...register("name")} />
+        <Label>Nome do tatuador *</Label>
+        <Input {...register("name")} placeholder="João Silva" />
         {formState.errors.name && <p className="text-xs text-red-400">{formState.errors.name.message}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label>Email *</Label>
-        <Input type="email" {...register("email")} />
-        {formState.errors.email && <p className="text-xs text-red-400">{formState.errors.email.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label>Senha</Label>
-          <Input type="password" {...register("password")} />
-          {formState.errors.password && <p className="text-xs text-red-400">{formState.errors.password.message}</p>}
+          <Label>Email</Label>
+          <Input type="email" {...register("email")} placeholder="joao@studio.com" />
+          {formState.errors.email && <p className="text-xs text-red-400">{formState.errors.email.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label>Telefone</Label>
-          <Input {...register("phone")} />
+          <Label>WhatsApp</Label>
+          <Input {...register("phone")} placeholder="(11) 99999-0000" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>Comissão (%)</Label>
-          <Input type="number" step="1" {...register("commissionPct")} />
-          {formState.errors.commissionPct && <p className="text-xs text-red-400">{formState.errors.commissionPct.message}</p>}
+          <Input type="number" step="1" min="0" max="100" {...register("commissionPct")} />
         </div>
         <div className="space-y-2">
           <Label>Cor do Avatar</Label>
           <Input type="color" className="h-10 p-1" {...register("avatarColor")} />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        O tatuador receberá um link para criar a própria senha e confirmar os dados.
+      </p>
       <Button type="submit" className="w-full" disabled={formState.isSubmitting}>
-        {formState.isSubmitting ? "Salvando..." : "Salvar"}
+        <Send className="mr-2 h-4 w-4" />
+        {formState.isSubmitting ? "Gerando convite..." : "Gerar link de convite"}
       </Button>
     </form>
   )
 }
 
+function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () => void }) {
+  const inviteUrl = typeof window !== "undefined" ? `${window.location.origin}/invite/${invite.token}` : ""
+
+  function copyLink() {
+    navigator.clipboard.writeText(inviteUrl)
+    toast.success("Link copiado!")
+  }
+
+  function shareWhatsApp() {
+    const phone = invite.phone?.replace(/\D/g, "") ?? ""
+    const msg = encodeURIComponent(
+      `Olá ${invite.name}! Você foi convidado para o InkFlow. Clique no link para criar sua conta: ${inviteUrl}`
+    )
+    const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`
+    window.open(url, "_blank")
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-4">
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-400" />
+        <div>
+          <p className="text-sm font-medium">Convite gerado para {invite.name}</p>
+          <p className="text-xs text-muted-foreground">
+            Válido por 7 dias
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Link de convite</Label>
+        <div className="flex items-center gap-2">
+          <Input readOnly value={inviteUrl} className="font-mono text-xs" />
+          <Button size="icon" variant="outline" onClick={copyLink}>
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="w-full" onClick={copyLink}>
+          <Link2 className="mr-2 h-4 w-4" /> Copiar link
+        </Button>
+        <Button variant="outline" className="w-full text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={shareWhatsApp}>
+          <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+        </Button>
+      </div>
+
+      <Button className="w-full" onClick={onDone}>
+        <Plus className="mr-2 h-4 w-4" /> Convidar outro tatuador
+      </Button>
+    </div>
+  )
+}
+
 export default function TeamPage() {
   const [artists, setArtists] = useState<any[] | null>(null)
+  const [invites, setInvites] = useState<any[]>([])
   const [open, setOpen] = useState(false)
+  const [createdInvite, setCreatedInvite] = useState<CreatedInvite | null>(null)
 
-  function load() {
+  function loadArtists() {
     fetch("/api/team")
       .then((r) => r.json())
       .then((d) => setArtists(Array.isArray(d) ? d : []))
       .catch(() => setArtists([]))
   }
 
+  function loadInvites() {
+    fetch("/api/invites")
+      .then((r) => r.json())
+      .then((d) => setInvites(Array.isArray(d) ? d.filter((i: any) => !i.usedAt) : []))
+      .catch(() => {})
+  }
+
   useEffect(() => {
-    load()
+    loadArtists()
+    loadInvites()
   }, [])
+
+  function handleOpen(v: boolean) {
+    setOpen(v)
+    if (!v) setCreatedInvite(null)
+  }
+
+  function onInviteCreated(invite: CreatedInvite) {
+    setCreatedInvite(invite)
+    loadInvites()
+  }
 
   return (
     <div className="p-4 md:p-6">
@@ -108,25 +191,57 @@ export default function TeamPage() {
           <h1 className="text-2xl font-bold">Equipe</h1>
           <p className="text-sm text-muted-foreground">Gerencie os tatuadores do estúdio</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> Novo Tatuador
+              <Plus className="mr-2 h-4 w-4" /> Convidar Tatuador
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Novo Tatuador</DialogTitle>
+              <DialogTitle>Convidar Tatuador</DialogTitle>
             </DialogHeader>
-            <TeamForm
-              onSuccess={() => {
-                setOpen(false)
-                load()
-              }}
-            />
+            {createdInvite ? (
+              <InviteResult invite={createdInvite} onDone={() => setCreatedInvite(null)} />
+            ) : (
+              <InviteForm onCreated={onInviteCreated} />
+            )}
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Pending invites */}
+      {invites.length > 0 && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Convites Pendentes</h2>
+          <div className="flex flex-col gap-2">
+            {invites.map((inv: any) => (
+              <div key={inv.id} className="flex items-center gap-3 rounded-lg border border-dashed bg-card px-4 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <Clock className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{inv.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {inv.email || inv.phone || "sem contato"} · expira {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true, locale: ptBR })}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const url = `${window.location.origin}/invite/${inv.token}`
+                    navigator.clipboard.writeText(url)
+                    toast.success("Link copiado!")
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {artists === null ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,9 +252,9 @@ export default function TeamPage() {
       ) : artists.length === 0 ? (
         <EmptyState
           icon={Palette}
-          title="Nenhum tatuador cadastrado"
-          description="Adicione os artistas do estúdio para gerenciar agendamentos e comissões."
-          action={{ label: "Adicionar tatuador", onClick: () => setOpen(true) }}
+          title="Nenhum tatuador na equipe"
+          description="Convide tatuadores para o estúdio. Cada um cria a própria senha e acessa apenas os próprios dados."
+          action={{ label: "Convidar tatuador", onClick: () => setOpen(true) }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
