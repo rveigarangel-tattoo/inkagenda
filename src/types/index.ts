@@ -26,7 +26,7 @@ export interface Client {
   artist?: User | null
 }
 
-export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show"
+export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "blocked"
 
 export interface Appointment {
   id: string

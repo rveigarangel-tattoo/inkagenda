@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const artistId = (session.user as any).role === "artist" ? (session.user as any).id : body.artistId
   const appt = await prisma.appointment.create({
     data: {
-      clientId: body.clientId,
+      clientId: body.clientId || null,
       artistId,
       service: body.service,
       style: body.style || null,

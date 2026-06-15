@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -78,7 +77,7 @@ model Client {
 
 model Appointment {
   id              String        @id @default(cuid())
-  clientId        String
+  clientId        String?
   artistId        String
   service         String
   value           Float         @default(0)
@@ -90,7 +89,7 @@ model Appointment {
   style           String?
   paymentMethod   String?
   createdAt       DateTime      @default(now())
-  client          Client        @relation(fields: [clientId], references: [id])
+  client          Client?       @relation(fields: [clientId], references: [id])
   artist          User          @relation(fields: [artistId], references: [id])
   transactions    Transaction[]
 }
