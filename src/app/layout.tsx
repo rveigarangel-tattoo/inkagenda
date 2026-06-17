@@ -6,13 +6,20 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "InkFlow - Gestão de Estúdio de Tatuagem",
-  description: "Sistema completo de gestão para estúdios de tatuagem",
+  title: "InkFlow",
+  description: "Gestão de estúdio de tatuagem",
+  appleWebApp: {
+    capable: true,
+    title: "InkFlow",
+    statusBarStyle: "black-translucent",
+  },
 }
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
