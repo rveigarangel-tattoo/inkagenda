@@ -22,6 +22,7 @@ const artistNav = [
   { href: "/artist/agenda", label: "Minha Agenda", icon: CalendarDays },
   { href: "/artist/clients", label: "Meus Clientes", icon: UserCircle },
   { href: "/artist/earnings", label: "Meus Ganhos", icon: TrendingUp },
+  { href: "/artist/settings", label: "Configurações", icon: Settings },
 ]
 
 export function Sidebar({ role }: { role: string }) {

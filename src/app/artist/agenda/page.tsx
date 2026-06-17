@@ -1,8 +1,11 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { addDays, startOfWeek, endOfWeek, format, isSameDay } from "date-fns"
+import {
+  addDays, startOfWeek, endOfWeek, format, isSameDay,
+  startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths,
+} from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AppointmentSheet } from "@/components/forms/appointment-sheet"
@@ -211,9 +214,126 @@ function CalendarColumn({ appts, isToday, isDark, draggingId, onCellClick, onDro
   )
 }
 
+// ─── month view ───────────────────────────────────────────────────────────────
+interface MonthViewProps {
+  monthStart: Date
+  appointments: Appointment[]
+  onEdit: (a: Appointment) => void
+  onNewDay: (day: Date) => void
+}
+
+function MonthView({ monthStart, appointments, onEdit, onNewDay }: MonthViewProps) {
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+
+  const gridStart = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 })
+  const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 })
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
+  const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+  const selectedAppts = selectedDay
+    ? appointments.filter((a) => isSameDay(new Date(a.date), selectedDay) && a.status !== "blocked")
+    : []
+
+  return (
+    <div className="flex flex-col gap-4 p-3">
+      {/* day-of-week headers */}
+      <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {weekDays.map((d) => <div key={d} className="py-2">{d}</div>)}
+      </div>
+
+      {/* grid */}
+      <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden border bg-border">
+        {days.map((day) => {
+          const isThisMonth = isSameMonth(day, monthStart)
+          const isToday = isSameDay(day, new Date())
+          const isSelected = selectedDay && isSameDay(day, selectedDay)
+          const dayAppts = appointments.filter(
+            (a) => isSameDay(new Date(a.date), day) && a.status !== "blocked"
+          )
+
+          return (
+            <div
+              key={day.toISOString()}
+              onClick={() => setSelectedDay(isSelected ? null : day)}
+              className={cn(
+                "bg-card min-h-[80px] cursor-pointer p-1.5 transition-colors",
+                !isThisMonth && "bg-muted/30 text-muted-foreground",
+                isSelected && "ring-2 ring-inset ring-primary",
+                isToday && !isSelected && "bg-primary/5"
+              )}
+            >
+              <div className={cn(
+                "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                isToday ? "bg-primary text-primary-foreground" : ""
+              )}>
+                {format(day, "d")}
+              </div>
+              <div className="space-y-0.5">
+                {dayAppts.slice(0, 3).map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={(e) => { e.stopPropagation(); onEdit(a) }}
+                    className="truncate rounded px-1 py-0.5 text-[10px] font-medium text-white"
+                    style={{ backgroundColor: a.artist?.avatarColor ?? "#7c3aed" }}
+                  >
+                    {formatTime(a.date)} {a.client?.name ?? a.service}
+                  </div>
+                ))}
+                {dayAppts.length > 3 && (
+                  <p className="text-[10px] text-muted-foreground">+{dayAppts.length - 3} mais</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* selected day detail */}
+      {selectedDay && (
+        <div className="rounded-xl border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-semibold capitalize">
+              {format(selectedDay, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </p>
+            <Button size="sm" onClick={() => onNewDay(selectedDay)}>
+              <Plus className="mr-1 h-4 w-4" /> Novo
+            </Button>
+          </div>
+          {selectedAppts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum agendamento neste dia.</p>
+          ) : (
+            <div className="space-y-2">
+              {selectedAppts
+                .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+                .map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => onEdit(a)}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 hover:bg-accent/50 transition-colors"
+                  >
+                    <span className="w-10 shrink-0 text-xs font-semibold text-primary">{formatTime(a.date)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{a.client?.name ?? "—"}</p>
+                      <p className="truncate text-xs text-muted-foreground">{a.service}</p>
+                    </div>
+                    <StatusBadge status={a.status} />
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── main page ───────────────────────────────────────────────────────────────
+type ViewMode = "week" | "month"
+
 export default function ArtistAgendaPage() {
+  const [viewMode, setViewMode] = useState<ViewMode>("week")
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()))
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [blockMode, setBlockMode] = useState(false)
@@ -225,6 +345,7 @@ export default function ArtistAgendaPage() {
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
     return () => obs.disconnect()
   }, [])
+
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selected, setSelected] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | undefined>()
@@ -241,14 +362,23 @@ export default function ArtistAgendaPage() {
 
   function load() {
     setLoading(true)
-    const to = endOfWeek(weekStart, { weekStartsOn: 1 })
-    fetch(`/api/appointments?from=${weekStart.toISOString()}&to=${to.toISOString()}`)
+    let from: string, to: string
+    if (viewMode === "month") {
+      const ms = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 })
+      const me = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 })
+      from = ms.toISOString()
+      to = me.toISOString()
+    } else {
+      from = weekStart.toISOString()
+      to = endOfWeek(weekStart, { weekStartsOn: 1 }).toISOString()
+    }
+    fetch(`/api/appointments?from=${from}&to=${to}`)
       .then((r) => r.json())
       .then((d) => setAppointments(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [weekStart])
+  useEffect(() => { load() }, [weekStart, monthStart, viewMode])
 
   // pointer resize events
   useEffect(() => {
@@ -349,6 +479,12 @@ export default function ArtistAgendaPage() {
     setSheetOpen(true)
   }
 
+  function openNewFromDay(day: Date) {
+    setSelected(null)
+    setDefaultDate(day)
+    setSheetOpen(true)
+  }
+
   function openEdit(a: Appointment) {
     if (a.status === "blocked") return
     setSelected(a)
@@ -363,43 +499,92 @@ export default function ArtistAgendaPage() {
     <div className="flex h-full flex-col overflow-hidden">
       {/* toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-card p-3 shrink-0">
-        {/* block mode */}
-        <button
-          onClick={() => setBlockMode((b) => !b)}
-          title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
-            blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
-          {blockMode ? "Bloqueando" : "Bloquear"}
-        </button>
+        {/* view toggle */}
+        <div className="flex rounded-lg border overflow-hidden">
+          <button
+            onClick={() => setViewMode("week")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors",
+              viewMode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Semana
+          </button>
+          <button
+            onClick={() => setViewMode("month")}
+            className={cn(
+              "flex items-center gap-1.5 border-l px-3 py-1.5 text-sm transition-colors",
+              viewMode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Mês
+          </button>
+        </div>
 
         {/* navigation */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, -7))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="min-w-[160px] text-center text-sm font-medium">
-            {format(weekStart, "dd MMM", { locale: ptBR })} — {format(addDays(weekStart, 6), "dd MMM yyyy", { locale: ptBR })}
-          </span>
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
-            Hoje
-          </Button>
-          <Button size="sm" onClick={() => openNew(new Date(), 9 * 60 - START_HOUR * 60)}>
-            <Plus className="mr-1 h-4 w-4" /> Novo
-          </Button>
-        </div>
+        {viewMode === "month" ? (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setMonthStart(addMonths(monthStart, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[140px] text-center text-sm font-medium capitalize">
+              {format(monthStart, "MMMM yyyy", { locale: ptBR })}
+            </span>
+            <Button variant="outline" size="icon" onClick={() => setMonthStart(addMonths(monthStart, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setMonthStart(startOfMonth(new Date()))}>
+              Hoje
+            </Button>
+            <Button size="sm" onClick={() => { setSelected(null); setDefaultDate(new Date()); setSheetOpen(true) }}>
+              <Plus className="mr-1 h-4 w-4" /> Novo
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {/* block mode */}
+            <button
+              onClick={() => setBlockMode((b) => !b)}
+              title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              {blockMode ? "Bloqueando" : "Bloquear"}
+            </button>
+
+            <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, -7))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[160px] text-center text-sm font-medium">
+              {format(weekStart, "dd MMM", { locale: ptBR })} — {format(addDays(weekStart, 6), "dd MMM yyyy", { locale: ptBR })}
+            </span>
+            <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+              Hoje
+            </Button>
+            <Button size="sm" onClick={() => openNew(new Date(), 9 * 60 - START_HOUR * 60)}>
+              <Plus className="mr-1 h-4 w-4" /> Novo
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* calendar grid */}
+      {/* calendar content */}
       <div className="flex-1 overflow-auto">
         {loading ? (
           <div className="p-4"><Skeleton className="h-[600px] w-full" /></div>
+        ) : viewMode === "month" ? (
+          <MonthView
+            monthStart={monthStart}
+            appointments={appointments}
+            onEdit={openEdit}
+            onNewDay={openNewFromDay}
+          />
         ) : (
           <div className="min-w-[640px]">
             {/* column headers */}

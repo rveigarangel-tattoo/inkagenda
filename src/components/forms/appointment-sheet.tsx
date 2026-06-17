@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate, isAdmin = true, onSaved }: Props) {
+  const { data: session } = useSession()
   const [clients, setClients] = useState<Client[]>([])
   const [artists, setArtists] = useState<User[]>([])
   const [clientSearch, setClientSearch] = useState("")
@@ -83,8 +85,9 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
       })
     } else {
       const d = defaultDate ?? new Date()
+      const myId = (session?.user as any)?.id ?? ""
       reset({
-        clientId: "", artistId: "", service: "Tatuagem", style: "",
+        clientId: "", artistId: isAdmin ? "" : myId, service: "Tatuagem", style: "",
         date: format(d, "yyyy-MM-dd"), time: format(d, "HH:mm"),
         durationMinutes: 60, value: 0, deposit: 0, paymentMethod: "", status: "pending", notes: "",
       })
@@ -145,7 +148,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
           </SheetTitle>
           {appointment?.clientId && (
             <Link
-              href={`/dashboard/clients/${appointment.clientId}`}
+              href={`${isAdmin ? "/dashboard" : "/artist"}/clients/${appointment.clientId}`}
               className="mt-0.5 flex items-center gap-1 text-xs text-primary hover:underline w-fit"
               onClick={() => onOpenChange(false)}
             >

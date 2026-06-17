@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 export default async function ArtistLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
   if (!session) redirect("/login")
+  if ((session.user as any).role !== "artist") redirect("/dashboard")
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar role="artist" />

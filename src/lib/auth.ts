@@ -32,13 +32,20 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = (user as any).id
         token.role = (user as any).role
         token.isArtist = (user as any).isArtist
         token.avatarColor = (user as any).avatarColor
         token.studioId = (user as any).studioId
+      }
+      if (trigger === "update" && token.id) {
+        const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } })
+        if (dbUser) {
+          token.name = dbUser.name
+          token.avatarColor = dbUser.avatarColor
+        }
       }
       return token
     },

@@ -24,7 +24,7 @@ export async function GET() {
   const earnings = revenue * (commissionPct / 100)
 
   const todayAppts = await prisma.appointment.findMany({
-    where: { artistId, date: { gte: startOfDay(now), lte: endOfDay(now) } },
+    where: { artistId, status: { not: "blocked" }, date: { gte: startOfDay(now), lte: endOfDay(now) } },
     include: { client: true },
     orderBy: { date: "asc" },
   })
@@ -41,6 +41,6 @@ export async function GET() {
       clients: clientsCount,
     },
     todayAppointments: todayAppts,
-    upcoming: monthAppts.filter((a) => a.date >= now && a.status !== "cancelled").slice(0, 8),
+    upcoming: monthAppts.filter((a) => a.date >= now && a.status !== "cancelled" && a.status !== "blocked").slice(0, 8),
   })
 }

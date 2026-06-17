@@ -24,11 +24,17 @@ const artistNav = [
   { href: "/artist/earnings", label: "Ganhos", icon: TrendingUp },
 ]
 
+const artistMore = [
+  { href: "/artist/settings", label: "Configurações", icon: Settings },
+]
+
 export function MobileNav({ role }: { role: string }) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
-  const nav = role === "artist" ? artistNav : adminNav
-  const isMoreActive = role !== "artist" && adminMore.some((i) => pathname.startsWith(i.href))
+  const isArtist = role === "artist"
+  const nav = isArtist ? artistNav : adminNav
+  const moreItems = isArtist ? artistMore : adminMore
+  const isMoreActive = moreItems.some((i) => pathname.startsWith(i.href))
 
   return (
     <>
@@ -47,7 +53,7 @@ export function MobileNav({ role }: { role: string }) {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {adminMore.map((item) => (
+              {moreItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -95,8 +101,8 @@ export function MobileNav({ role }: { role: string }) {
           )
         })}
 
-        {/* "Mais" button — admin only */}
-        {role !== "artist" && (
+        {/* "Mais" button */}
+        {(
           <button
             onClick={() => setMoreOpen(!moreOpen)}
             className="relative flex flex-1 flex-col items-center gap-1 py-2.5 text-xs"
