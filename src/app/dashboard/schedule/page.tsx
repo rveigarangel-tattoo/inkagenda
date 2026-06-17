@@ -496,7 +496,7 @@ export default function SchedulePage() {
             </div>
 
             {/* Time rows + columns */}
-            <div className="flex">
+            <div className="flex pt-2">
               {/* Time gutter */}
               <div className="shrink-0" style={{ width: 52 }}>
                 {hours.map((h) => (

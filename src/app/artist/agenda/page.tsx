@@ -418,7 +418,7 @@ export default function ArtistAgendaPage() {
             </div>
 
             {/* time gutter + columns */}
-            <div className="flex">
+            <div className="flex pt-2">
               <div className="shrink-0" style={{ width: 52 }}>
                 {hours.map((h) => (
                   <div
