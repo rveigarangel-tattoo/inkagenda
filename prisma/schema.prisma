@@ -106,7 +106,7 @@ model Client {
   healthNotes  String?
   createdAt    DateTime      @default(now())
   studio       Studio        @relation(fields: [studioId], references: [id])
-  artist       User?         @relation(fields: [artistId], references: [id])
+  artist       User?         @relation(fields: [artistId], references: [id], onDelete: SetNull)
   appointments Appointment[]
 }
 
@@ -114,7 +114,7 @@ model Appointment {
   id              String        @id @default(cuid())
   studioId        String
   clientId        String?
-  artistId        String
+  artistId        String?
   service         String
   value           Float         @default(0)
   deposit         Float         @default(0)
@@ -127,7 +127,7 @@ model Appointment {
   createdAt       DateTime      @default(now())
   studio          Studio        @relation(fields: [studioId], references: [id])
   client          Client?       @relation(fields: [clientId], references: [id])
-  artist          User          @relation(fields: [artistId], references: [id])
+  artist          User?         @relation(fields: [artistId], references: [id], onDelete: SetNull)
   transactions    Transaction[]
 }
 
@@ -145,5 +145,5 @@ model Transaction {
   createdAt     DateTime     @default(now())
   studio        Studio       @relation(fields: [studioId], references: [id])
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  artist        User?        @relation(fields: [artistId], references: [id])
+  artist        User?        @relation(fields: [artistId], references: [id], onDelete: SetNull)
 }

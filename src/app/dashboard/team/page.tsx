@@ -6,7 +6,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 import {
   Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle,
-  Send, Clock, CheckCircle2, Copy, Crown, ExternalLink, Pencil, Trash2, X,
+  Send, Clock, CheckCircle2, Copy, Crown, ExternalLink, Pencil, Trash2, X, AlertTriangle,
 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
@@ -302,6 +302,81 @@ function EditArtistDialog({
   )
 }
 
+function RemoveArtistDialog({
+  artist,
+  onRemoved,
+}: {
+  artist: any
+  onRemoved: (hard: boolean) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState<"soft" | "hard" | null>(null)
+
+  async function handle(hard: boolean) {
+    setLoading(hard ? "hard" : "soft")
+    const url = hard ? `/api/team/${artist.id}?hard=true` : `/api/team/${artist.id}`
+    const res = await fetch(url, { method: "DELETE" })
+    setLoading(null)
+    if (!res.ok) { toast.error("Erro ao remover tatuador"); return }
+    setOpen(false)
+    onRemoved(hard)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" /> Remover
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remover {artist.name}?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">Escolha como deseja remover este tatuador do estúdio:</p>
+        <div className="grid gap-3 py-1">
+          <button
+            onClick={() => handle(false)}
+            disabled={!!loading}
+            className="flex items-start gap-3 rounded-xl border p-4 text-left hover:bg-accent transition-colors disabled:opacity-50"
+          >
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+              <X className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">Desativar conta</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                O tatuador perde o acesso imediatamente. O card fica visível como "Desativado" e pode ser reativado depois.
+              </p>
+            </div>
+            {loading === "soft" && <span className="ml-auto text-xs text-muted-foreground">...</span>}
+          </button>
+
+          <button
+            onClick={() => handle(true)}
+            disabled={!!loading}
+            className="flex items-start gap-3 rounded-xl border border-destructive/30 p-4 text-left hover:bg-destructive/5 transition-colors disabled:opacity-50"
+          >
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-destructive">Excluir permanentemente</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Remove o card completamente. Agendamentos anteriores são preservados no histórico, mas sem vínculo com o tatuador.
+              </p>
+            </div>
+            {loading === "hard" && <span className="ml-auto text-xs text-muted-foreground">...</span>}
+          </button>
+        </div>
+        <Button variant="outline" className="w-full" onClick={() => setOpen(false)} disabled={!!loading}>
+          Cancelar
+        </Button>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function TeamPage() {
   const [artists, setArtists] = useState<any[] | null>(null)
   const [invites, setInvites] = useState<any[]>([])
@@ -341,10 +416,8 @@ export default function TeamPage() {
     loadInvites()
   }
 
-  async function removeArtist(id: string, name: string) {
-    const res = await fetch(`/api/team/${id}`, { method: "DELETE" })
-    if (!res.ok) { toast.error("Erro ao remover tatuador"); return }
-    toast.success(`${name} removido do estúdio`)
+  function onArtistRemoved(name: string, hard: boolean) {
+    toast.success(hard ? `${name} excluído permanentemente` : `${name} desativado`)
     loadArtists()
   }
 
@@ -477,16 +550,9 @@ export default function TeamPage() {
                   {!isOwner && (
                     <div className="mt-4 flex gap-2 border-t pt-4">
                       <EditArtistDialog artist={a} onSaved={loadArtists} />
-                      <ConfirmDialog
-                        title={`Remover ${a.name}?`}
-                        description="A conta será desativada imediatamente. O histórico de agendamentos é preservado. Esta ação pode ser revertida editando o tatuador."
-                        confirmText="Remover do estúdio"
-                        onConfirm={() => removeArtist(a.id, a.name)}
-                        trigger={
-                          <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" /> Remover
-                          </Button>
-                        }
+                      <RemoveArtistDialog
+                        artist={a}
+                        onRemoved={(hard) => onArtistRemoved(a.name, hard)}
                       />
                     </div>
                   )}

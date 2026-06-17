@@ -69,7 +69,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
       const d = new Date(appointment.date)
       reset({
         clientId: appointment.clientId,
-        artistId: appointment.artistId,
+        artistId: appointment.artistId ?? "",
         service: appointment.service,
         style: appointment.style ?? "",
         date: format(d, "yyyy-MM-dd"),

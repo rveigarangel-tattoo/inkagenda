@@ -31,7 +31,7 @@ export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancell
 export interface Appointment {
   id: string
   clientId: string
-  artistId: string
+  artistId: string | null
   service: string
   value: number
   deposit: number

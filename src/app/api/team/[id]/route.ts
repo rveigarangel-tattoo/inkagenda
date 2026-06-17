@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(safe)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user as any).role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -48,9 +48,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!artist) return NextResponse.json({ error: "Not found" }, { status: 404 })
   if (artist.id === adminId) return NextResponse.json({ error: "Cannot remove yourself" }, { status: 400 })
 
-  await prisma.user.update({
-    where: { id: params.id },
-    data: { isActive: false },
-  })
+  const url = new URL(req.url)
+  const hard = url.searchParams.get("hard") === "true"
+
+  if (hard) {
+    // Hard delete — appointments/transactions/clients get artistId set to null via cascade
+    await prisma.user.delete({ where: { id: params.id } })
+  } else {
+    // Soft disable — preserves card visibility, can be reactivated
+    await prisma.user.update({
+      where: { id: params.id },
+      data: { isActive: false },
+    })
+  }
   return NextResponse.json({ ok: true })
 }
