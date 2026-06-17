@@ -37,9 +37,9 @@ export default function ArtistDashboardPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      {/* Hero: today */}
+      {/* Hero: hoje — clica e vai pra agenda */}
       <div
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-background border cursor-pointer"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-background border cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.995]"
         onClick={() => router.push("/artist/agenda")}
       >
         <div className="p-5">
@@ -93,38 +93,73 @@ export default function ArtistDashboardPage() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — todos clicáveis */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Receita do Mês" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} />
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Meus Ganhos</p>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Wallet className="h-5 w-5" />
+        <StatCard
+          label="Receita do Mês"
+          value={formatCurrency(data.kpis.revenue)}
+          icon={DollarSign}
+          href="/artist/earnings"
+        />
+        <Link href="/artist/earnings" className="block">
+          <Card className="cursor-pointer transition-all duration-150 hover:shadow-md hover:border-primary/50 active:scale-[0.99] h-full">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Meus Ganhos</p>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Wallet className="h-5 w-5" />
+                </div>
               </div>
-            </div>
-            <p className="mt-3 text-2xl font-bold">{formatCurrency(data.kpis.earnings)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Comissão de {data.kpis.commissionPct}%</p>
-          </CardContent>
-        </Card>
-        <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={Calendar} />
-        <StatCard label="Meus Clientes" value={String(data.kpis.clients)} icon={Users} />
+              <p className="mt-3 text-2xl font-bold">{formatCurrency(data.kpis.earnings)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Comissão de {data.kpis.commissionPct}%</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <StatCard
+          label="Agendamentos"
+          value={String(data.kpis.appointments)}
+          icon={Calendar}
+          href="/artist/agenda"
+        />
+        <StatCard
+          label="Meus Clientes"
+          value={String(data.kpis.clients)}
+          icon={Users}
+          href="/artist/clients"
+        />
       </div>
 
-      {/* Upcoming */}
+      {/* Próximos — card inteiro clicável e cada linha também */}
       {data.upcoming.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Próximos Agendamentos</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
+        <Card
+          className="cursor-pointer transition-all duration-150 hover:shadow-md hover:border-primary/50 active:scale-[0.995]"
+          onClick={() => router.push("/artist/agenda")}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Próximos Agendamentos</CardTitle>
+            <span className="flex items-center gap-1 text-xs text-primary">
+              Ver agenda <ArrowRight className="h-3 w-3" />
+            </span>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {data.upcoming.map((a: any) => (
-              <div key={a.id} className="flex items-center gap-3">
-                <AvatarInitials name={a.client?.name ?? "?"} size={36} />
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-accent/60 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AvatarInitials name={a.client?.name ?? "?"} size={34} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{a.client?.name ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">{a.service}</p>
+                  <Link
+                    href={`/artist/clients/${a.clientId}`}
+                    className="block truncate text-sm font-medium hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {a.client?.name ?? "—"}
+                  </Link>
+                  <p className="truncate text-xs text-muted-foreground">{a.service}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">{formatDate(a.date, "dd/MM HH:mm")}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{formatDate(a.date, "dd/MM HH:mm")}</span>
               </div>
             ))}
           </CardContent>

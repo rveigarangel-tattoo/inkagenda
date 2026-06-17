@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ArrowDownRight, ArrowUpRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -10,13 +11,17 @@ interface StatCardProps {
   change?: number
   changeLabel?: string
   variant?: "primary" | "default"
+  href?: string
 }
 
-export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs período anterior", variant = "default" }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs período anterior", variant = "default", href }: StatCardProps) {
   const positive = (change ?? 0) >= 0
   const isPrimary = variant === "primary"
-  return (
-    <Card className={cn(isPrimary && "bg-primary text-primary-foreground border-primary")}>
+  const card = (
+    <Card className={cn(
+      isPrimary && "bg-primary text-primary-foreground border-primary",
+      href && "cursor-pointer transition-all duration-150 hover:shadow-md hover:border-primary/50 active:scale-[0.99]"
+    )}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <p className={cn("text-sm font-medium", isPrimary ? "text-primary-foreground/80" : "text-muted-foreground")}>
@@ -44,4 +49,7 @@ export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs p
       </CardContent>
     </Card>
   )
+
+  if (href) return <Link href={href} className="block">{card}</Link>
+  return card
 }

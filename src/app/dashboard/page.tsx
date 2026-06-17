@@ -340,19 +340,22 @@ export default function DashboardPage() {
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
-          <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} />
-          <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} />
-          <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} />
+          <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" href="/dashboard/finances" />
+          <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} href="/dashboard/schedule" />
+          <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} href="/dashboard/schedule" />
+          <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} href="/dashboard/finances" />
         </div>
 
         {/* Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>
               Receita · {activeLabel}
               {data.isAdmin && artistId ? ` · ${data.artists.find((a: any) => a.id === artistId)?.name ?? ""}` : ""}
             </CardTitle>
+            <Link href="/dashboard/finances" className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0">
+              Ver financeiro <ArrowRight className="h-3 w-3" />
+            </Link>
           </CardHeader>
           <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
         </Card>
@@ -363,11 +366,18 @@ export default function DashboardPage() {
             <CardTitle>
               {data.isAdmin && !artistId ? "Ranking de Tatuadores" : "Desempenho do Tatuador"}
             </CardTitle>
-            {data.isAdmin && artistId && (
-              <button onClick={() => setArtistId("")} className="text-xs text-muted-foreground hover:text-foreground underline">
-                ← Todos
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {data.isAdmin && artistId && (
+                <button onClick={() => setArtistId("")} className="text-xs text-muted-foreground hover:text-foreground underline">
+                  ← Todos
+                </button>
+              )}
+              {data.isAdmin && !artistId && (
+                <Link href="/dashboard/team" className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0">
+                  Ver equipe <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {data.ranking.length === 0 ? (
