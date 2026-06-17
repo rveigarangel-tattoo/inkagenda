@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -142,6 +143,15 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             {appointment ? "Editar Agendamento" : "Novo Agendamento"}
             {appointment && <StatusBadge status={appointment.status} />}
           </SheetTitle>
+          {appointment?.clientId && (
+            <Link
+              href={`/dashboard/clients/${appointment.clientId}`}
+              className="mt-0.5 flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+              onClick={() => onOpenChange(false)}
+            >
+              Ver perfil do cliente →
+            </Link>
+          )}
         </SheetHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">

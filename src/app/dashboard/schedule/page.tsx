@@ -1,8 +1,8 @@
 "use client"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { addDays, startOfWeek, endOfWeek, format, isSameDay } from "date-fns"
+import { addDays, startOfWeek, endOfWeek, format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, Users, Calendar as CalIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, Users, Calendar as CalIcon, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -18,7 +18,7 @@ const HOUR_HEIGHT = 60 // px per hour (= 1px per min)
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60
 const SNAP = 15 // snap to 15-min increments
 
-type ViewMode = "week" | "team"
+type ViewMode = "week" | "team" | "month"
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function minutesFromDate(d: Date): number {
@@ -210,10 +210,157 @@ function CalendarColumn({ appts, isToday, isDark, draggingId, onCellClick, onDro
   )
 }
 
+// ─── month view ──────────────────────────────────────────────────────────────
+function MonthView({
+  monthStart,
+  appointments,
+  isDark,
+  onEdit,
+  onNewDay,
+}: {
+  monthStart: Date
+  appointments: Appointment[]
+  isDark: boolean
+  onEdit: (a: Appointment) => void
+  onNewDay: (date: Date) => void
+}) {
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  useEffect(() => { setSelectedDay(null) }, [monthStart])
+
+  const gridStart = useMemo(() => startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 }), [monthStart])
+  const gridEnd = useMemo(() => endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 }), [monthStart])
+  const days = useMemo(() => eachDayOfInterval({ start: gridStart, end: gridEnd }), [gridStart, gridEnd])
+
+  const apptsByDay = useMemo(() => {
+    const map = new Map<string, Appointment[]>()
+    for (const a of appointments) {
+      const key = format(new Date(a.date), "yyyy-MM-dd")
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(a)
+    }
+    return map
+  }, [appointments])
+
+  const today = new Date()
+  const selectedKey = selectedDay ? format(selectedDay, "yyyy-MM-dd") : null
+  const selectedAppts = (selectedKey ? (apptsByDay.get(selectedKey) ?? []) : [])
+    .filter((a) => a.status !== "blocked")
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Day headers */}
+      <div className="grid grid-cols-7 border-b bg-card shrink-0">
+        {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
+          <div key={d} className="py-2 text-center text-xs font-medium uppercase text-muted-foreground">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div
+        className="flex-1 grid grid-cols-7 overflow-y-auto"
+        style={{ gridAutoRows: "minmax(80px, 1fr)" }}
+      >
+        {days.map((day) => {
+          const key = format(day, "yyyy-MM-dd")
+          const dayAppts = (apptsByDay.get(key) ?? []).filter((a) => a.status !== "blocked")
+          const isCurrentMonth = isSameMonth(day, monthStart)
+          const isToday = isSameDay(day, today)
+          const isSelected = selectedDay ? isSameDay(day, selectedDay) : false
+
+          return (
+            <div
+              key={key}
+              onClick={() => setSelectedDay(isSelected ? null : day)}
+              className={cn(
+                "border-b border-r p-1 cursor-pointer hover:bg-accent/30 transition-colors flex flex-col min-h-[80px]",
+                !isCurrentMonth && "opacity-40",
+                isSelected && "bg-primary/5 ring-1 ring-inset ring-primary/20"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium mb-1 shrink-0",
+                  isToday ? "bg-primary text-primary-foreground" : "text-foreground"
+                )}
+              >
+                {format(day, "d")}
+              </div>
+              <div className="space-y-0.5 min-h-0 overflow-hidden">
+                {dayAppts.slice(0, 3).map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={(e) => { e.stopPropagation(); onEdit(a) }}
+                    className="truncate rounded px-1 py-0.5 text-[10px] leading-tight cursor-pointer hover:opacity-80"
+                    style={{
+                      backgroundColor: `${a.artist?.avatarColor ?? "#7c3aed"}${isDark ? "50" : "35"}`,
+                      color: isDark ? "#f0f0f0" : "#1a1a1a",
+                    }}
+                  >
+                    {format(new Date(a.date), "HH:mm")} {a.client?.name ?? "—"}
+                  </div>
+                ))}
+                {dayAppts.length > 3 && (
+                  <p className="text-[10px] text-muted-foreground pl-1">+{dayAppts.length - 3}</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Selected day detail panel */}
+      {selectedDay && (
+        <div className="border-t bg-card shrink-0 p-3 max-h-52 overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold capitalize">
+              {format(selectedDay, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </p>
+            <button
+              onClick={() => { onNewDay(selectedDay); setSelectedDay(null) }}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Plus className="h-3 w-3" /> Novo
+            </button>
+          </div>
+          {selectedAppts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum agendamento neste dia.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {selectedAppts.map((a) => (
+                <div
+                  key={a.id}
+                  onClick={() => { onEdit(a); setSelectedDay(null) }}
+                  className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-accent transition-colors"
+                >
+                  <div
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: a.artist?.avatarColor ?? "#7c3aed" }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{a.client?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(a.date), "HH:mm")} · {a.artist?.name} · {a.service}
+                    </p>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── main page ───────────────────────────────────────────────────────────────
 export default function SchedulePage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [teamDay, setTeamDay] = useState(() => new Date())
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()))
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [artists, setArtists] = useState<User[]>([])
   const [artistFilter, setArtistFilter] = useState("all")
@@ -246,13 +393,19 @@ export default function SchedulePage() {
 
   function load() {
     setLoading(true)
-    const useDay = viewMode === "team" ? teamDay : weekStart
-    const from = viewMode === "team"
-      ? new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 0, 0, 0).toISOString()
-      : weekStart.toISOString()
-    const to = viewMode === "team"
-      ? new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 23, 59, 59).toISOString()
-      : endOfWeek(weekStart, { weekStartsOn: 1 }).toISOString()
+    let from: string, to: string
+    if (viewMode === "month") {
+      const gridS = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 })
+      const gridE = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 })
+      from = gridS.toISOString()
+      to = gridE.toISOString()
+    } else if (viewMode === "team") {
+      from = new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 0, 0, 0).toISOString()
+      to = new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 23, 59, 59).toISOString()
+    } else {
+      from = weekStart.toISOString()
+      to = endOfWeek(weekStart, { weekStartsOn: 1 }).toISOString()
+    }
     const q = artistFilter !== "all" ? `&artistId=${artistFilter}` : ""
     fetch(`/api/appointments?from=${from}&to=${to}${q}`)
       .then((r) => r.json())
@@ -260,7 +413,8 @@ export default function SchedulePage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [weekStart, teamDay, artistFilter, viewMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [weekStart, teamDay, monthStart, artistFilter, viewMode])
   useEffect(() => { fetch("/api/team").then((r) => r.json()).then(setArtists).catch(() => {}) }, [])
 
   // resize pointer events
@@ -420,20 +574,34 @@ export default function SchedulePage() {
             <button onClick={() => setViewMode("team")} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l", viewMode === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
               <Users className="h-3.5 w-3.5" /> Equipe
             </button>
+            <button onClick={() => setViewMode("month")} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l", viewMode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <CalendarDays className="h-3.5 w-3.5" /> Mês
+            </button>
           </div>
-          {/* Block mode */}
-          <button
-            onClick={() => setBlockMode((b) => !b)}
-            title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
-            className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground")}
-          >
-            {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
-            {blockMode ? "Bloqueando" : "Bloquear"}
-          </button>
+          {/* Block mode — hidden in month view */}
+          {viewMode !== "month" && (
+            <button
+              onClick={() => setBlockMode((b) => !b)}
+              title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
+              className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground")}
+            >
+              {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              {blockMode ? "Bloqueando" : "Bloquear"}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {viewMode === "week" ? (
+          {viewMode === "month" ? (
+            <>
+              <Button variant="outline" size="icon" onClick={() => setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+              <span className="text-sm font-medium min-w-[140px] text-center capitalize">
+                {format(monthStart, "MMMM yyyy", { locale: ptBR })}
+              </span>
+              <Button variant="outline" size="icon" onClick={() => setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="sm" onClick={() => setMonthStart(startOfMonth(new Date()))}>Hoje</Button>
+            </>
+          ) : viewMode === "week" ? (
             <>
               <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft className="h-4 w-4" /></Button>
               <span className="text-sm font-medium min-w-[160px] text-center">
@@ -452,7 +620,7 @@ export default function SchedulePage() {
               <Button variant="outline" size="sm" onClick={() => setTeamDay(new Date())}>Hoje</Button>
             </>
           )}
-          {viewMode === "week" && (
+          {viewMode !== "team" && (
             <Select value={artistFilter} onValueChange={setArtistFilter}>
               <SelectTrigger className="w-40"><SelectValue placeholder="Tatuador" /></SelectTrigger>
               <SelectContent>
@@ -461,7 +629,7 @@ export default function SchedulePage() {
               </SelectContent>
             </Select>
           )}
-          <Button size="sm" onClick={() => openNew(viewMode === "week" ? new Date() : teamDay, 0)}>
+          <Button size="sm" onClick={() => openNew(viewMode === "team" ? teamDay : new Date(), 0)}>
             <Plus className="h-4 w-4" /> Novo
           </Button>
         </div>
@@ -471,6 +639,18 @@ export default function SchedulePage() {
       <div className="flex-1 overflow-auto">
         {loading ? (
           <div className="p-4"><Skeleton className="h-[600px] w-full" /></div>
+        ) : viewMode === "month" ? (
+          <MonthView
+            monthStart={monthStart}
+            appointments={appointments}
+            isDark={isDark}
+            onEdit={openEdit}
+            onNewDay={(date) => {
+              setSelected(null)
+              setDefaultDate(date)
+              setSheetOpen(true)
+            }}
+          />
         ) : (
           <div className="min-w-[640px]">
             {/* Column headers */}

@@ -1,8 +1,10 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { addDays, format, parseISO, startOfMonth, startOfWeek } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, ChevronDown, DollarSign, CalendarCheck, CheckCircle, Receipt } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronDown, DollarSign, CalendarCheck, CheckCircle, Receipt, ArrowRight } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -189,6 +191,7 @@ export default function DashboardPage() {
     to: format(new Date(), "yyyy-MM-dd"),
   }))
   const [artistId, setArtistId] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     const params = new URLSearchParams({ from: range.from, to: range.to })
@@ -282,6 +285,52 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Today's appointments — sempre primeiro */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base capitalize">
+              Hoje · {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </CardTitle>
+            <Link href="/dashboard/schedule" className="flex items-center gap-1 text-xs text-primary hover:underline">
+              Ver agenda <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {data.todayAppointments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum agendamento hoje.</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+              {data.todayAppointments.map((a: any) => (
+                <div
+                  key={a.id}
+                  onClick={() => router.push("/dashboard/schedule")}
+                  className="flex-shrink-0 flex items-center gap-3 rounded-xl border bg-muted/30 p-3 min-w-[220px] max-w-[260px] hover:bg-accent/50 transition-colors cursor-pointer snap-start"
+                >
+                  <AvatarInitials name={a.artist.name} color={a.artist.avatarColor} size={36} />
+                  <div className="min-w-0 flex-1">
+                    {a.client ? (
+                      <Link
+                        href={`/dashboard/clients/${a.client.id}`}
+                        className="truncate text-sm font-medium block hover:text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {a.client.name}
+                      </Link>
+                    ) : (
+                      <p className="truncate text-sm font-medium text-muted-foreground">Bloqueado</p>
+                    )}
+                    <p className="text-xs text-muted-foreground truncate">{formatTime(a.date)} · {a.service}</p>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
@@ -290,38 +339,23 @@ export default function DashboardPage() {
         <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} />
       </div>
 
-      {/* Chart + today */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Receita no Período</CardTitle></CardHeader>
-          <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Agendamentos de Hoje</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {data.todayAppointments.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum agendamento hoje.</p>
-            )}
-            {data.todayAppointments.map((a: any) => (
-              <div key={a.id} className="flex items-center gap-3">
-                <AvatarInitials name={a.artist.name} color={a.artist.avatarColor} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{a.client?.name ?? "Horário Bloqueado"}</p>
-                  <p className="text-xs text-muted-foreground">{formatTime(a.date)} · {a.service}</p>
-                </div>
-                <StatusBadge status={a.status} />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Chart — full width */}
+      <Card>
+        <CardHeader><CardTitle>Receita no Período</CardTitle></CardHeader>
+        <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
+      </Card>
 
       {/* Ranking */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>
             {data.isAdmin && !artistId ? "Ranking de Tatuadores" : "Desempenho do Tatuador"}
           </CardTitle>
+          {data.isAdmin && artistId && (
+            <button onClick={() => setArtistId("")} className="text-xs text-muted-foreground hover:text-foreground underline">
+              ← Todos
+            </button>
+          )}
         </CardHeader>
         <CardContent>
           {data.ranking.length === 0 ? (
@@ -338,7 +372,11 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {data.ranking.map((r: any) => (
-                  <TableRow key={r.id}>
+                  <TableRow
+                    key={r.id}
+                    className={cn("cursor-pointer transition-colors", r.id === artistId ? "bg-primary/5" : "hover:bg-accent/50")}
+                    onClick={() => setArtistId(r.id === artistId ? "" : r.id)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <AvatarInitials name={r.name} color={r.avatarColor} size={32} />
