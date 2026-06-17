@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Trash2 } from "lucide-react"
+import { Trash2, UserPlus, ChevronLeft } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,6 +50,10 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
   const [clients, setClients] = useState<Client[]>([])
   const [artists, setArtists] = useState<User[]>([])
   const [clientSearch, setClientSearch] = useState("")
+  const [clientMode, setClientMode] = useState<"existing" | "new">("existing")
+  const [newName, setNewName] = useState("")
+  const [newPhone, setNewPhone] = useState("")
+  const [creatingClient, setCreatingClient] = useState(false)
 
   const { register, handleSubmit, control, setValue, watch, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -60,10 +64,35 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
   })
 
   useEffect(() => {
-    if (!open) return
+    if (!open) { setClientMode("existing"); setNewName(""); setNewPhone(""); return }
     fetch("/api/clients").then((r) => r.json()).then(setClients).catch(() => {})
     if (isAdmin) fetch("/api/team").then((r) => r.json()).then(setArtists).catch(() => {})
   }, [open, isAdmin])
+
+  async function createClient() {
+    if (!newName.trim()) return
+    setCreatingClient(true)
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), phone: newPhone.trim() || undefined }),
+      })
+      if (!res.ok) throw new Error()
+      const created: Client = await res.json()
+      setClients((prev) => [created, ...prev])
+      setValue("clientId", created.id)
+      setClientSearch("")
+      setNewName("")
+      setNewPhone("")
+      setClientMode("existing")
+      toast.success("Cliente criado e selecionado")
+    } catch {
+      toast.error("Erro ao criar cliente")
+    } finally {
+      setCreatingClient(false)
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -158,15 +187,62 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
         </SheetHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Cliente *</Label>
-            <Input placeholder="Buscar cliente..." value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} />
-            <Select value={clientId} onValueChange={(v) => setValue("clientId", v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-              <SelectContent>
-                {filteredClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {formState.errors.clientId && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.clientId.message}</p>}
+            <div className="flex items-center justify-between">
+              <Label>Cliente *</Label>
+              <button
+                type="button"
+                onClick={() => { setClientMode(clientMode === "new" ? "existing" : "new"); setNewName(""); setNewPhone("") }}
+                className="flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                {clientMode === "new"
+                  ? <><ChevronLeft className="h-3 w-3" /> Selecionar existente</>
+                  : <><UserPlus className="h-3 w-3" /> Novo cliente</>}
+              </button>
+            </div>
+
+            {clientMode === "existing" ? (
+              <>
+                <Input placeholder="Buscar cliente..." value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} />
+                <Select value={clientId} onValueChange={(v) => setValue("clientId", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                  <SelectContent>
+                    {filteredClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {formState.errors.clientId && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.clientId.message}</p>}
+              </>
+            ) : (
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome *</Label>
+                  <Input
+                    placeholder="Nome completo"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createClient())}
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Telefone</Label>
+                  <Input
+                    placeholder="(11) 99999-9999"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createClient())}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full"
+                  disabled={!newName.trim() || creatingClient}
+                  onClick={createClient}
+                >
+                  {creatingClient ? "Criando..." : "Criar e selecionar"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {isAdmin && (
