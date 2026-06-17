@@ -56,7 +56,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
       <div className="space-y-2">
         <Label>Descrição *</Label>
         <Input {...register("description")} />
-        {formState.errors.description && <p className="text-xs text-red-400">{formState.errors.description.message}</p>}
+        {formState.errors.description && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.description.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
@@ -66,7 +66,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
         <div className="space-y-2">
           <Label>Valor *</Label>
           <CurrencyInput control={control} name="amount" />
-          {formState.errors.amount && <p className="text-xs text-red-400">{formState.errors.amount.message}</p>}
+          {formState.errors.amount && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.amount.message}</p>}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">

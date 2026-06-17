@@ -51,7 +51,7 @@ export function ClientForm({ client, onSuccess }: { client?: Client; onSuccess?:
       <div className="space-y-2">
         <Label>Nome *</Label>
         <Input {...register("name")} />
-        {formState.errors.name && <p className="text-xs text-red-400">{formState.errors.name.message}</p>}
+        {formState.errors.name && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.name.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">

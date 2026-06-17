@@ -16,7 +16,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       <div className="relative flex h-20 w-20 items-center justify-center">
         <div className="absolute inset-0 rounded-2xl bg-primary/10" />
         <div className="absolute inset-2 rounded-xl bg-primary/5" />
-        <Icon className="relative h-9 w-9 text-primary/60" />
+        <Icon className="relative h-9 w-9 text-primary/80" />
       </div>
       <div className="space-y-1">
         <p className="text-base font-semibold">{title}</p>

@@ -77,6 +77,7 @@ interface BlockProps {
   appt: Appointment
   top: number
   height: number
+  isDark: boolean
   draggingId: string | null
   onEdit: () => void
   onDragStart: (e: React.DragEvent, appt: Appointment, offsetY: number) => void
@@ -84,7 +85,7 @@ interface BlockProps {
   onHover: (appt: Appointment | null, rect?: DOMRect) => void
 }
 
-function AppointmentBlock({ appt, top, height, draggingId, onEdit, onDragStart, onResizeStart, onHover }: BlockProps) {
+function AppointmentBlock({ appt, top, height, isDark, draggingId, onEdit, onDragStart, onResizeStart, onHover }: BlockProps) {
   const ref = useRef<HTMLDivElement>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>()
   const isBlocked = appt.status === "blocked"
@@ -108,7 +109,7 @@ function AppointmentBlock({ appt, top, height, draggingId, onEdit, onDragStart, 
       }}
       onMouseLeave={() => { clearTimeout(hoverTimer.current); onHover(null) }}
       className={cn(
-        "absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-4 text-[11px] text-white select-none transition-opacity",
+        "absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-4 text-[11px] select-none transition-opacity",
         isBlocked ? "cursor-default" : "cursor-grab active:cursor-grabbing hover:brightness-110",
         isDragging && "opacity-30"
       )}
@@ -116,11 +117,12 @@ function AppointmentBlock({ appt, top, height, draggingId, onEdit, onDragStart, 
         top,
         height,
         borderColor: color,
+        color: isDark ? "white" : "black",
         backgroundColor: isBlocked
           ? undefined
-          : `${color}40`,
+          : `${color}${isDark ? "40" : "CC"}`,
         backgroundImage: isBlocked
-          ? `repeating-linear-gradient(45deg, ${color}25 0px, ${color}25 5px, transparent 5px, transparent 12px)`
+          ? `repeating-linear-gradient(45deg, ${color}${isDark ? "25" : "B0"} 0px, ${color}${isDark ? "25" : "B0"} 5px, transparent 5px, transparent 12px)`
           : undefined,
         borderLeftColor: color,
       }}
@@ -138,7 +140,7 @@ function AppointmentBlock({ appt, top, height, draggingId, onEdit, onDragStart, 
           onPointerDown={(e) => { e.stopPropagation(); onResizeStart(e, appt) }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="h-0.5 w-6 rounded-full bg-white/40" />
+          <div className="h-0.5 w-6 rounded-full bg-black/20 dark:bg-white/40" />
         </div>
       )}
     </div>
@@ -149,6 +151,7 @@ function AppointmentBlock({ appt, top, height, draggingId, onEdit, onDragStart, 
 interface ColumnProps {
   appts: Appointment[]
   isToday?: boolean
+  isDark: boolean
   draggingId: string | null
   onCellClick: (minute: number) => void
   onDrop: (e: React.DragEvent, colEl: HTMLDivElement) => void
@@ -158,7 +161,7 @@ interface ColumnProps {
   onHover: (a: Appointment | null, rect?: DOMRect) => void
 }
 
-function CalendarColumn({ appts, isToday, draggingId, onCellClick, onDrop, onEdit, onDragStart, onResizeStart, onHover }: ColumnProps) {
+function CalendarColumn({ appts, isToday, isDark, draggingId, onCellClick, onDrop, onEdit, onDragStart, onResizeStart, onHover }: ColumnProps) {
   const ref = useRef<HTMLDivElement>(null)
   const slots = useMemo(() => Array.from({ length: (END_HOUR - START_HOUR) * 2 }, (_, i) => i * 30), [])
 
@@ -194,6 +197,7 @@ function CalendarColumn({ appts, isToday, draggingId, onCellClick, onDrop, onEdi
             appt={a}
             top={topFromDate(start)}
             height={durationToHeight(a.durationMinutes)}
+            isDark={isDark}
             draggingId={draggingId}
             onEdit={() => onEdit(a)}
             onDragStart={onDragStart}
@@ -216,6 +220,14 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("week")
   const [blockMode, setBlockMode] = useState(false)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"))
+    const obs = new MutationObserver(() => setIsDark(document.documentElement.classList.contains("dark")))
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    return () => obs.disconnect()
+  }, [])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selected, setSelected] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | undefined>()
@@ -413,7 +425,7 @@ export default function SchedulePage() {
           <button
             onClick={() => setBlockMode((b) => !b)}
             title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
-            className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-400" : "text-muted-foreground hover:text-foreground")}
+            className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground")}
           >
             {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
             {blockMode ? "Bloqueando" : "Bloquear"}
@@ -475,8 +487,8 @@ export default function SchedulePage() {
                     </div>
                   ) : (
                     <>
-                      <p className="uppercase text-muted-foreground">{col.label.slice(0, 3)}</p>
-                      <p className={cn("text-base font-semibold", col.isToday && "text-primary")}>{col.label.slice(4)}</p>
+                      <p className="uppercase text-muted-foreground">{col.label.split(" ")[0].slice(0, 3)}</p>
+                      <p className={cn("text-base font-semibold", col.isToday && "text-primary")}>{col.label.split(" ").pop()}</p>
                     </>
                   )}
                 </div>
@@ -507,6 +519,7 @@ export default function SchedulePage() {
                       : col.appts
                     }
                     isToday={col.isToday}
+                    isDark={isDark}
                     draggingId={draggingId}
                     onCellClick={(min) => openNew(col.date, min, col.artistId ?? (artists[0]?.id ?? ""))}
                     onDrop={(e, el) => handleDrop(e, el, col.date)}

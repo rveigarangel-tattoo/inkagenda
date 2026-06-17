@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       email: body.email || null,
       phone: body.phone || null,
       role: body.role || "artist",
+      isArtist: body.isArtist ?? false,
       commissionPct: body.commissionPct ?? 50,
       avatarColor: body.avatarColor || "#7c3aed",
       expiresAt,

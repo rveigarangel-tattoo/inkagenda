@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle, Send, Clock, CheckCircle2, Copy } from "lucide-react"
+import { Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle, Send, Clock, CheckCircle2, Copy, Crown, ExternalLink } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,18 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
+
+// roleType maps UI selection to { role, isArtist }
+type RoleType = "artist" | "admin" | "admin_artist"
+function roleTypeToFields(rt: RoleType): { role: string; isArtist: boolean } {
+  if (rt === "admin") return { role: "admin", isArtist: false }
+  if (rt === "admin_artist") return { role: "admin", isArtist: true }
+  return { role: "artist", isArtist: false }
+}
 
 const inviteSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -35,16 +44,20 @@ interface CreatedInvite {
 }
 
 function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void }) {
+  const [roleType, setRoleType] = useState<RoleType>("artist")
+  const needsArtistFields = roleType !== "admin"
+
   const { register, handleSubmit, formState, reset } = useForm<InviteValues>({
     resolver: zodResolver(inviteSchema),
     defaultValues: { name: "", email: "", phone: "", commissionPct: 50, avatarColor: "#7c3aed" },
   })
 
   async function onSubmit(values: InviteValues) {
+    const { role, isArtist } = roleTypeToFields(roleType)
     const res = await fetch("/api/invites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, role, isArtist }),
     })
     if (!res.ok) {
       toast.error("Erro ao criar convite")
@@ -53,38 +66,63 @@ function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void 
     const data = await res.json()
     onCreated(data)
     reset()
+    setRoleType("artist")
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label>Nome do tatuador *</Label>
-        <Input {...register("name")} placeholder="João Silva" />
-        {formState.errors.name && <p className="text-xs text-red-400">{formState.errors.name.message}</p>}
+        <Label>Cargo</Label>
+        <Select value={roleType} onValueChange={(v) => setRoleType(v as RoleType)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="artist">Tatuador</SelectItem>
+            <SelectItem value="admin">Co-dono</SelectItem>
+            <SelectItem value="admin_artist">Co-dono Tatuador</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {roleType === "artist" && "Vê apenas a própria agenda e comissão."}
+          {roleType === "admin" && "Acesso completo ao sistema. Não aparece na agenda como artista."}
+          {roleType === "admin_artist" && "Acesso completo e também aparece na agenda, ranking e filtros."}
+        </p>
       </div>
+
+      <div className="space-y-2">
+        <Label>Nome *</Label>
+        <Input {...register("name")} placeholder="João Silva" />
+        {formState.errors.name && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.name.message}</p>}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>Email</Label>
           <Input type="email" {...register("email")} placeholder="joao@studio.com" />
-          {formState.errors.email && <p className="text-xs text-red-400">{formState.errors.email.message}</p>}
+          {formState.errors.email && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.email.message}</p>}
         </div>
         <div className="space-y-2">
           <Label>WhatsApp</Label>
           <Input {...register("phone")} placeholder="(11) 99999-0000" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label>Comissão (%)</Label>
-          <Input type="number" step="1" min="0" max="100" {...register("commissionPct")} />
+
+      {needsArtistFields && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Comissão (%)</Label>
+            <Input type="number" step="1" min="0" max="100" {...register("commissionPct")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Cor do Avatar</Label>
+            <Input type="color" className="h-10 p-1" {...register("avatarColor")} />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>Cor do Avatar</Label>
-          <Input type="color" className="h-10 p-1" {...register("avatarColor")} />
-        </div>
-      </div>
+      )}
+
       <p className="text-xs text-muted-foreground">
-        O tatuador receberá um link para criar a própria senha e confirmar os dados.
+        A pessoa receberá um link para criar a própria senha e confirmar os dados.
       </p>
       <Button type="submit" className="w-full" disabled={formState.isSubmitting}>
         <Send className="mr-2 h-4 w-4" />
@@ -114,12 +152,10 @@ function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () =>
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-4">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-400" />
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
         <div>
           <p className="text-sm font-medium">Convite gerado para {invite.name}</p>
-          <p className="text-xs text-muted-foreground">
-            Válido por 7 dias
-          </p>
+          <p className="text-xs text-muted-foreground">Válido por 7 dias</p>
         </div>
       </div>
 
@@ -127,8 +163,13 @@ function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () =>
         <Label>Link de convite</Label>
         <div className="flex items-center gap-2">
           <Input readOnly value={inviteUrl} className="font-mono text-xs" />
-          <Button size="icon" variant="outline" onClick={copyLink}>
+          <Button size="icon" variant="outline" onClick={copyLink} title="Copiar">
             <Copy className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" asChild title="Abrir em nova aba">
+            <a href={inviteUrl} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-4 w-4" />
+            </a>
           </Button>
         </div>
       </div>
@@ -137,13 +178,13 @@ function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () =>
         <Button variant="outline" className="w-full" onClick={copyLink}>
           <Link2 className="mr-2 h-4 w-4" /> Copiar link
         </Button>
-        <Button variant="outline" className="w-full text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={shareWhatsApp}>
+        <Button variant="outline" className="w-full text-green-700 dark:text-green-400 border-green-600/30 dark:border-green-500/30 hover:bg-green-500/10" onClick={shareWhatsApp}>
           <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
         </Button>
       </div>
 
       <Button className="w-full" onClick={onDone}>
-        <Plus className="mr-2 h-4 w-4" /> Convidar outro tatuador
+        <Plus className="mr-2 h-4 w-4" /> Convidar outra pessoa
       </Button>
     </div>
   )
@@ -189,17 +230,17 @@ export default function TeamPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Equipe</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os tatuadores do estúdio</p>
+          <p className="text-sm text-muted-foreground">Gerencie tatuadores e co-donos do estúdio</p>
         </div>
         <Dialog open={open} onOpenChange={handleOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> Convidar Tatuador
+              <Plus className="mr-2 h-4 w-4" /> Convidar
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Convidar Tatuador</DialogTitle>
+              <DialogTitle>Convidar para o Estúdio</DialogTitle>
             </DialogHeader>
             {createdInvite ? (
               <InviteResult invite={createdInvite} onDone={() => setCreatedInvite(null)} />
@@ -223,20 +264,28 @@ export default function TeamPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{inv.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {inv.email || inv.phone || "sem contato"} · expira {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true, locale: ptBR })}
+                    {inv.role === "admin" ? (inv.isArtist ? "Co-dono Tatuador" : "Co-dono") : "Tatuador"} · expira {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true, locale: ptBR })}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    const url = `${window.location.origin}/invite/${inv.token}`
-                    navigator.clipboard.writeText(url)
-                    toast.success("Link copiado!")
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    title="Copiar link"
+                    onClick={() => {
+                      const url = `${window.location.origin}/invite/${inv.token}`
+                      navigator.clipboard.writeText(url)
+                      toast.success("Link copiado!")
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" title="Abrir link" asChild>
+                    <a href={`/invite/${inv.token}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -252,41 +301,56 @@ export default function TeamPage() {
       ) : artists.length === 0 ? (
         <EmptyState
           icon={Palette}
-          title="Nenhum tatuador na equipe"
-          description="Convide tatuadores para o estúdio. Cada um cria a própria senha e acessa apenas os próprios dados."
-          action={{ label: "Convidar tatuador", onClick: () => setOpen(true) }}
+          title="Nenhum membro na equipe"
+          description="Convide tatuadores ou co-donos. Cada um cria a própria senha e acessa apenas os próprios dados."
+          action={{ label: "Convidar", onClick: () => setOpen(true) }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {artists.map((a: any) => (
-            <Card key={a.id}>
-              <CardContent className="p-5">
-                <div className="flex items-start gap-3">
-                  <AvatarInitials name={a.name} color={a.avatarColor} size={48} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{a.name}</p>
-                    <span
-                      className={cn(
-                        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                        a.isActive
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-gray-500/15 text-gray-400"
-                      )}
-                    >
-                      <span className={cn("h-1.5 w-1.5 rounded-full", a.isActive ? "bg-green-400" : "bg-gray-400")} />
-                      {a.isActive ? "Ativo" : "Inativo"}
-                    </span>
+          {artists.map((a: any) => {
+            const isOwner = a.role === "admin"
+            return (
+              <Card key={a.id}>
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-3">
+                    <AvatarInitials name={a.name} color={a.avatarColor} size={48} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate font-semibold">{a.name}</p>
+                        {isOwner && (
+                          <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                            a.isActive
+                              ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                              : "bg-gray-500/15 text-gray-600 dark:text-gray-400"
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", a.isActive ? "bg-green-600 dark:bg-green-400" : "bg-gray-500 dark:bg-gray-400")} />
+                          {a.isActive ? "Ativo" : "Inativo"}
+                        </span>
+                        {isOwner && (
+                          <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                            {a.isArtist ? "Co-dono Tatuador" : "Co-dono"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {a.email}</p>
-                  <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {a.phone || "—"}</p>
-                  <p className="flex items-center gap-2"><Percent className="h-4 w-4" /> Comissão: {a.commissionPct}%</p>
-                  <p className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> {a.appointments?.length ?? 0} agendamentos</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {a.email}</p>
+                    <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {a.phone || "—"}</p>
+                    <p className="flex items-center gap-2"><Percent className="h-4 w-4" /> Comissão: {a.commissionPct}%</p>
+                    <p className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> {a.appointments?.length ?? 0} agendamentos</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

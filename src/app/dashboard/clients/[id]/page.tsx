@@ -100,7 +100,7 @@ export default function ClientDetailPage() {
                 )}
                 {client.notes && <p className="mt-2 max-w-xl text-sm">{client.notes}</p>}
                 {client.healthNotes && (
-                  <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                  <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
                     <span className="font-semibold">Saúde: </span>
                     {client.healthNotes}
                   </div>

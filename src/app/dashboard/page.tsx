@@ -1,8 +1,8 @@
 "use client"
-import { useEffect, useState } from "react"
-import { format, subMonths } from "date-fns"
+import { useEffect, useRef, useState } from "react"
+import { addDays, format, parseISO, startOfMonth, startOfWeek } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { DollarSign, CalendarCheck, CheckCircle, Receipt } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronDown, DollarSign, CalendarCheck, CheckCircle, Receipt } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,34 +10,194 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { RevenueChart } from "@/components/charts/revenue-chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatCurrency, formatTime } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { formatCurrency, formatTime, cn } from "@/lib/utils"
 
-// Month options: last 12 months up to and including current month
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => {
-  const d = subMonths(new Date(), 11 - i)
-  const raw = format(d, "MMM/yyyy", { locale: ptBR })
-  return {
-    value: format(d, "yyyy-MM"),
-    label: raw.charAt(0).toUpperCase() + raw.slice(1),
+type DateRange = { from: string; to: string }
+
+const PRESETS: { label: string; get: () => DateRange }[] = [
+  {
+    label: "Hoje",
+    get: () => { const t = format(new Date(), "yyyy-MM-dd"); return { from: t, to: t } },
+  },
+  {
+    label: "Últimos 3 dias",
+    get: () => ({ from: format(addDays(new Date(), -2), "yyyy-MM-dd"), to: format(new Date(), "yyyy-MM-dd") }),
+  },
+  {
+    label: "Últimos 7 dias",
+    get: () => ({ from: format(addDays(new Date(), -6), "yyyy-MM-dd"), to: format(new Date(), "yyyy-MM-dd") }),
+  },
+  {
+    label: "Últimos 15 dias",
+    get: () => ({ from: format(addDays(new Date(), -14), "yyyy-MM-dd"), to: format(new Date(), "yyyy-MM-dd") }),
+  },
+  {
+    label: "Esta semana",
+    get: () => ({
+      from: format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      to: format(new Date(), "yyyy-MM-dd"),
+    }),
+  },
+  {
+    label: "Este mês",
+    get: () => ({
+      from: format(startOfMonth(new Date()), "yyyy-MM-dd"),
+      to: format(new Date(), "yyyy-MM-dd"),
+    }),
+  },
+  {
+    label: "Mês anterior",
+    get: () => {
+      const now = new Date()
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const last = new Date(now.getFullYear(), now.getMonth(), 0)
+      return { from: format(first, "yyyy-MM-dd"), to: format(last, "yyyy-MM-dd") }
+    },
+  },
+]
+
+function getActiveLabel(range: DateRange): string {
+  for (const p of PRESETS) {
+    const r = p.get()
+    if (r.from === range.from && r.to === range.to) return p.label
   }
-})
+  return "Personalizado"
+}
+
+function displayDate(str: string) {
+  try { return format(parseISO(str), "dd/MM/yyyy") } catch { return str }
+}
+
+function DateRangePicker({ value, onChange }: { value: DateRange; onChange: (r: DateRange) => void }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [open])
+
+  useEffect(() => { setDraft(value) }, [value])
+
+  const label = getActiveLabel(value)
+  const todayStr = format(new Date(), "yyyy-MM-dd")
+
+  function applyPreset(get: () => DateRange) {
+    onChange(get())
+    setOpen(false)
+  }
+
+  function applyCustom() {
+    if (draft.from && draft.to && draft.from <= draft.to) {
+      onChange(draft)
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-accent transition-colors"
+      >
+        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="font-medium">{label}</span>
+        <span className="text-muted-foreground">·</span>
+        {value.from !== value.to ? (
+          <span className="text-muted-foreground">{displayDate(value.from)} → {displayDate(value.to)}</span>
+        ) : (
+          <span className="text-muted-foreground">{displayDate(value.from)}</span>
+        )}
+        <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-150", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+          {/* Preset list */}
+          <div className="flex flex-row sm:flex-col flex-wrap gap-0.5 border-b sm:border-b-0 sm:border-r border-border p-2">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => applyPreset(preset.get)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-left text-sm transition-colors whitespace-nowrap",
+                  label === preset.label
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "text-foreground hover:bg-accent"
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom range */}
+          <div className="flex flex-col gap-3 p-4 min-w-[260px]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Período personalizado
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">De</label>
+                <input
+                  type="date"
+                  value={draft.from}
+                  max={draft.to || todayStr}
+                  onChange={(e) => setDraft({ ...draft, from: e.target.value })}
+                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Até</label>
+                <input
+                  type="date"
+                  value={draft.to}
+                  min={draft.from}
+                  max={todayStr}
+                  onChange={(e) => setDraft({ ...draft, to: e.target.value })}
+                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={!draft.from || !draft.to || draft.from > draft.to}
+              onClick={applyCustom}
+            >
+              Aplicar período
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const SELECT_CLS =
   "rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null)
-  const [month, setMonth] = useState(() => format(new Date(), "yyyy-MM"))
+  const [range, setRange] = useState<DateRange>(() => ({
+    from: format(addDays(new Date(), -6), "yyyy-MM-dd"),
+    to: format(new Date(), "yyyy-MM-dd"),
+  }))
   const [artistId, setArtistId] = useState("")
 
   useEffect(() => {
-    const params = new URLSearchParams({ month })
+    const params = new URLSearchParams({ from: range.from, to: range.to })
     if (artistId) params.set("artistId", artistId)
     fetch(`/api/dashboard?${params}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => {})
-  }, [month, artistId])
+  }, [range, artistId])
 
   if (!data) {
     return (
@@ -48,7 +208,7 @@ export default function DashboardPage() {
             <Skeleton className="h-4 w-48" />
           </div>
           <div className="flex gap-2">
-            <Skeleton className="h-8 w-28 rounded-lg" />
+            <Skeleton className="h-8 w-52 rounded-lg" />
             <Skeleton className="h-8 w-40 rounded-lg" />
           </div>
         </div>
@@ -87,7 +247,7 @@ export default function DashboardPage() {
     )
   }
 
-  const selectedLabel = MONTH_OPTIONS.find((o) => o.value === month)?.label ?? month
+  const activeLabel = getActiveLabel(range)
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -96,25 +256,14 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            {selectedLabel}
+            {activeLabel}
             {data.isAdmin && artistId
               ? ` · ${data.artists.find((a: any) => a.id === artistId)?.name ?? ""}`
               : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className={SELECT_CLS}
-            aria-label="Filtrar por mês"
-          >
-            {MONTH_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <DateRangePicker value={range} onChange={setRange} />
           {data.isAdmin && (
             <select
               value={artistId}
@@ -135,7 +284,7 @@ export default function DashboardPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Receita do Mês" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
+        <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
         <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} />
         <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} />
         <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} />
@@ -144,7 +293,7 @@ export default function DashboardPage() {
       {/* Chart + today */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Receita (6 meses)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Receita no Período</CardTitle></CardHeader>
           <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
         </Card>
         <Card>

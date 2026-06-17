@@ -8,10 +8,11 @@ interface StatCardProps {
   value: string
   icon: LucideIcon
   change?: number
+  changeLabel?: string
   variant?: "primary" | "default"
 }
 
-export function StatCard({ label, value, icon: Icon, change, variant = "default" }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs período anterior", variant = "default" }: StatCardProps) {
   const positive = (change ?? 0) >= 0
   const isPrimary = variant === "primary"
   return (
@@ -34,10 +35,10 @@ export function StatCard({ label, value, icon: Icon, change, variant = "default"
             "mt-1 flex items-center gap-1 text-xs",
             isPrimary
               ? positive ? "text-green-200" : "text-red-200"
-              : positive ? "text-green-400" : "text-red-400"
+              : positive ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
           )}>
             {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {Math.abs(change).toFixed(1)}% vs mês anterior
+            {Math.abs(change).toFixed(1)}% {changeLabel}
           </p>
         )}
       </CardContent>

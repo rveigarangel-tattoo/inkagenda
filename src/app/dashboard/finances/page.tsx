@@ -140,14 +140,14 @@ export default function FinancesPage() {
                           className={cn(
                             "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
                             isIncome
-                              ? "border-green-500/30 bg-green-500/15 text-green-400"
-                              : "border-red-500/30 bg-red-500/15 text-red-400"
+                              ? "border-green-500/30 bg-green-500/15 text-green-700 dark:text-green-400"
+                              : "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-400"
                           )}
                         >
                           {isIncome ? "Receita" : "Despesa"}
                         </span>
                       </TableCell>
-                      <TableCell className={cn("text-right font-medium", isIncome ? "text-green-400" : "text-red-400")}>
+                      <TableCell className={cn("text-right font-medium", isIncome ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400")}>
                         {isIncome ? "+" : "-"}
                         {formatCurrency(t.amount)}
                       </TableCell>

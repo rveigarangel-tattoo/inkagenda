@@ -15,7 +15,7 @@
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: 0 0% 38%;
     --accent: 262 83% 96%;
     --accent-foreground: 262 83% 40%;
     --destructive: 0 72% 51%;
@@ -57,6 +57,11 @@
     @apply bg-background text-foreground;
     font-family: "Inter", system-ui, sans-serif;
   }
+  /* date/time picker icons — invert in dark mode so they're visible */
+  .dark ::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

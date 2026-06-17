@@ -153,7 +153,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
                 {filteredClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            {formState.errors.clientId && <p className="text-xs text-red-400">{formState.errors.clientId.message}</p>}
+            {formState.errors.clientId && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.clientId.message}</p>}
           </div>
 
           {isAdmin && (
@@ -165,7 +165,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
                   {artists.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {formState.errors.artistId && <p className="text-xs text-red-400">{formState.errors.artistId.message}</p>}
+              {formState.errors.artistId && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.artistId.message}</p>}
             </div>
           )}
 

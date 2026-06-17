@@ -1,20 +1,54 @@
 "use client"
+import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
-import { LogOut, Moon } from "lucide-react"
+import { LogOut, Moon, Brush } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 
 export default function SettingsPage() {
   const { data: session } = useSession()
   const user = (session?.user as any) ?? {}
+  const isAdmin = user.role === "admin"
+
+  const [profile, setProfile] = useState<any>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then(setProfile)
+  }, [])
+
+  async function saveArtistProfile() {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isArtist: profile.isArtist,
+          commissionPct: profile.commissionPct,
+          avatarColor: profile.avatarColor,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Perfil atualizado")
+    } catch {
+      toast.error("Erro ao salvar")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-sm text-muted-foreground">Estúdio InkFlow</p>
+        <p className="text-sm text-muted-foreground">{user.name}</p>
       </div>
 
       <div className="grid max-w-2xl gap-6">
@@ -34,10 +68,64 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label>Função</Label>
-              <Input value={user.role ?? ""} readOnly />
+              <Input value={user.role === "admin" ? "Administrador" : "Tatuador"} readOnly />
             </div>
           </CardContent>
         </Card>
+
+        {isAdmin && profile && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brush className="h-5 w-5 text-primary" />
+                Perfil de Artista
+              </CardTitle>
+              <CardDescription>
+                Ative se você também tatua. Seus dados aparecerão no ranking, na agenda e nos filtros.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">Também sou tatuador</p>
+                  <p className="text-xs text-muted-foreground">Aparece na agenda e no ranking como artista</p>
+                </div>
+                <Switch
+                  checked={profile.isArtist}
+                  onCheckedChange={(v: boolean) => setProfile({ ...profile, isArtist: v })}
+                />
+              </div>
+
+              {profile.isArtist && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Comissão (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={profile.commissionPct}
+                      onChange={(e) => setProfile({ ...profile, commissionPct: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor do Avatar</Label>
+                    <Input
+                      type="color"
+                      className="h-10 p-1"
+                      value={profile.avatarColor}
+                      onChange={(e) => setProfile({ ...profile, avatarColor: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={saveArtistProfile} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

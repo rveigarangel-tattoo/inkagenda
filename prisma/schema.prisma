@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Studio {
@@ -28,6 +28,7 @@ model Invite {
   email         String?
   phone         String?
   role          String    @default("artist")
+  isArtist      Boolean   @default(false)
   commissionPct Float     @default(50)
   avatarColor   String    @default("#7c3aed")
   token         String    @unique @default(cuid())
@@ -44,6 +45,7 @@ model User {
   email         String        @unique
   password      String
   role          String        @default("artist")
+  isArtist      Boolean       @default(false)
   phone         String?
   commissionPct Float         @default(50)
   avatarUrl     String?

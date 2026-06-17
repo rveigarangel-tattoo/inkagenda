@@ -10,7 +10,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const studioId = (session.user as any).studioId
   const artists = await prisma.user.findMany({
-    where: { studioId, role: "artist" },
+    where: { studioId, OR: [{ role: "artist" }, { isArtist: true }] },
     include: { appointments: true },
     orderBy: { name: "asc" },
   })
