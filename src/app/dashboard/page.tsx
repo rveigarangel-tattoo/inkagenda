@@ -251,148 +251,161 @@ export default function DashboardPage() {
   }
 
   const activeLabel = getActiveLabel(range)
+  const todayCount = data.todayAppointments.filter((a: any) => a.status !== "blocked").length
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Title + filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {activeLabel}
-            {data.isAdmin && artistId
-              ? ` · ${data.artists.find((a: any) => a.id === artistId)?.name ?? ""}`
-              : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={range} onChange={setRange} />
-          {data.isAdmin && (
-            <select
-              value={artistId}
-              onChange={(e) => setArtistId(e.target.value)}
-              className={SELECT_CLS}
-              aria-label="Filtrar por tatuador"
-            >
-              <option value="">Todos os tatuadores</option>
-              {data.artists.map((a: any) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
+    <div className="p-4 pb-24 md:p-6 md:pb-6 space-y-6">
 
-      {/* Today's appointments — sempre primeiro */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base capitalize">
-              Hoje · {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-            </CardTitle>
-            <Link href="/dashboard/schedule" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Ver agenda <ArrowRight className="h-3 w-3" />
-            </Link>
+      {/* ══ HOJE — primeira coisa visível ══ */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              {format(new Date(), "EEEE", { locale: ptBR })}
+            </p>
+            <h1 className="text-2xl font-bold">
+              {format(new Date(), "dd 'de' MMMM", { locale: ptBR })}
+            </h1>
+            {todayCount > 0 && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {todayCount} agendamento{todayCount > 1 ? "s" : ""} hoje
+              </p>
+            )}
           </div>
-        </CardHeader>
-        <CardContent>
-          {data.todayAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum agendamento hoje.</p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
-              {data.todayAppointments.map((a: any) => (
-                <div
-                  key={a.id}
-                  onClick={() => router.push("/dashboard/schedule")}
-                  className="flex-shrink-0 flex items-center gap-3 rounded-xl border bg-muted/30 p-3 min-w-[220px] max-w-[260px] hover:bg-accent/50 transition-colors cursor-pointer snap-start"
-                >
-                  <AvatarInitials name={a.artist.name} color={a.artist.avatarColor} size={36} />
-                  <div className="min-w-0 flex-1">
-                    {a.client ? (
-                      <Link
-                        href={`/dashboard/clients/${a.client.id}`}
-                        className="truncate text-sm font-medium block hover:text-primary"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {a.client.name}
-                      </Link>
-                    ) : (
-                      <p className="truncate text-sm font-medium text-muted-foreground">Bloqueado</p>
-                    )}
-                    <p className="text-xs text-muted-foreground truncate">{formatTime(a.date)} · {a.service}</p>
-                  </div>
-                  <StatusBadge status={a.status} />
+          <Link href="/dashboard/schedule" className="flex items-center gap-1 text-sm text-primary hover:underline pb-1">
+            Agenda <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {data.todayAppointments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/10 py-10 gap-2">
+            <CalendarCheck className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Nenhum agendamento hoje</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {data.todayAppointments.map((a: any) => (
+              <div
+                key={a.id}
+                onClick={() => router.push("/dashboard/schedule")}
+                className="flex items-center gap-3 rounded-xl border bg-card p-3 cursor-pointer hover:bg-accent/50 active:scale-[0.99] transition-all"
+              >
+                <div className="shrink-0 w-12 text-center">
+                  <p className="text-base font-bold tabular-nums leading-tight">{formatTime(a.date)}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="h-8 w-px bg-border shrink-0" />
+                <AvatarInitials name={a.artist.name} color={a.artist.avatarColor} size={36} />
+                <div className="min-w-0 flex-1">
+                  {a.client ? (
+                    <Link
+                      href={`/dashboard/clients/${a.client.id}`}
+                      className="text-sm font-semibold truncate block hover:text-primary"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {a.client.name}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-semibold text-muted-foreground">Bloqueado</p>
+                  )}
+                  <p className="text-xs text-muted-foreground truncate">{a.service} · {a.artist.name}</p>
+                </div>
+                <StatusBadge status={a.status} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
-        <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} />
-        <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} />
-        <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} />
-      </div>
-
-      {/* Chart — full width */}
-      <Card>
-        <CardHeader><CardTitle>Receita no Período</CardTitle></CardHeader>
-        <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
-      </Card>
-
-      {/* Ranking */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>
-            {data.isAdmin && !artistId ? "Ranking de Tatuadores" : "Desempenho do Tatuador"}
-          </CardTitle>
-          {data.isAdmin && artistId && (
-            <button onClick={() => setArtistId("")} className="text-xs text-muted-foreground hover:text-foreground underline">
-              ← Todos
-            </button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {data.ranking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem dados para o período.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tatuador</TableHead>
-                  <TableHead className="text-right">Agendamentos</TableHead>
-                  <TableHead className="text-right">Receita</TableHead>
-                  <TableHead className="text-right">Comissão</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.ranking.map((r: any) => (
-                  <TableRow
-                    key={r.id}
-                    className={cn("cursor-pointer transition-colors", r.id === artistId ? "bg-primary/5" : "hover:bg-accent/50")}
-                    onClick={() => setArtistId(r.id === artistId ? "" : r.id)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <AvatarInitials name={r.name} color={r.avatarColor} size={32} />
-                        <span className="font-medium">{r.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{r.appointments}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(r.revenue)}</TableCell>
-                    <TableCell className="text-right text-primary">{formatCurrency(r.commission)}</TableCell>
-                  </TableRow>
+      {/* ══ ANÁLISES ══ */}
+      <section className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold text-muted-foreground">Análises</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker value={range} onChange={setRange} />
+            {data.isAdmin && (
+              <select
+                value={artistId}
+                onChange={(e) => setArtistId(e.target.value)}
+                className={SELECT_CLS}
+                aria-label="Filtrar por tatuador"
+              >
+                <option value="">Todos os tatuadores</option>
+                {data.artists.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              </select>
+            )}
+          </div>
+        </div>
+
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" />
+          <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} />
+          <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} />
+          <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} />
+        </div>
+
+        {/* Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Receita · {activeLabel}
+              {data.isAdmin && artistId ? ` · ${data.artists.find((a: any) => a.id === artistId)?.name ?? ""}` : ""}
+            </CardTitle>
+          </CardHeader>
+          <CardContent><RevenueChart data={data.monthlyRevenue} /></CardContent>
+        </Card>
+
+        {/* Ranking */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              {data.isAdmin && !artistId ? "Ranking de Tatuadores" : "Desempenho do Tatuador"}
+            </CardTitle>
+            {data.isAdmin && artistId && (
+              <button onClick={() => setArtistId("")} className="text-xs text-muted-foreground hover:text-foreground underline">
+                ← Todos
+              </button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {data.ranking.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem dados para o período.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tatuador</TableHead>
+                    <TableHead className="text-right">Agendamentos</TableHead>
+                    <TableHead className="text-right">Receita</TableHead>
+                    <TableHead className="text-right">Comissão</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.ranking.map((r: any) => (
+                    <TableRow
+                      key={r.id}
+                      className={cn("cursor-pointer transition-colors", r.id === artistId ? "bg-primary/5" : "hover:bg-accent/50")}
+                      onClick={() => setArtistId(r.id === artistId ? "" : r.id)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <AvatarInitials name={r.name} color={r.avatarColor} size={32} />
+                          <span className="font-medium">{r.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{r.appointments}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(r.revenue)}</TableCell>
+                      <TableCell className="text-right text-primary">{formatCurrency(r.commission)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }
