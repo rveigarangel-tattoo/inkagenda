@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { ARTIST_PALETTE } from "@/lib/utils"
 
@@ -69,4 +71,18 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
   })
 
   return NextResponse.json({ ok: true, email })
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { token: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any).role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+  const studioId = (session.user as any).studioId
+  const invite = await prisma.invite.findUnique({ where: { token: params.token } })
+  if (!invite || invite.studioId !== studioId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+  await prisma.invite.delete({ where: { token: params.token } })
+  return NextResponse.json({ ok: true })
 }

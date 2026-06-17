@@ -4,7 +4,10 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle, Send, Clock, CheckCircle2, Copy, Crown, ExternalLink } from "lucide-react"
+import {
+  Plus, Mail, Phone, Percent, CalendarCheck, Palette, Link2, MessageCircle,
+  Send, Clock, CheckCircle2, Copy, Crown, ExternalLink, Pencil, Trash2, X,
+} from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,11 +17,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
-// roleType maps UI selection to { role, isArtist }
 type RoleType = "artist" | "admin" | "admin_artist"
 function roleTypeToFields(rt: RoleType): { role: string; isArtist: boolean } {
   if (rt === "admin") return { role: "admin", isArtist: false }
@@ -34,6 +37,15 @@ const inviteSchema = z.object({
   avatarColor: z.string().min(1),
 })
 type InviteValues = z.infer<typeof inviteSchema>
+
+const editSchema = z.object({
+  name: z.string().min(2, "Nome obrigatório"),
+  phone: z.string().optional(),
+  commissionPct: z.coerce.number().min(0).max(100),
+  avatarColor: z.string().min(1),
+  isActive: z.boolean(),
+})
+type EditValues = z.infer<typeof editSchema>
 
 interface CreatedInvite {
   token: string
@@ -59,10 +71,7 @@ function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...values, role, isArtist }),
     })
-    if (!res.ok) {
-      toast.error("Erro ao criar convite")
-      return
-    }
+    if (!res.ok) { toast.error("Erro ao criar convite"); return }
     const data = await res.json()
     onCreated(data)
     reset()
@@ -74,9 +83,7 @@ function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void 
       <div className="space-y-2">
         <Label>Cargo</Label>
         <Select value={roleType} onValueChange={(v) => setRoleType(v as RoleType)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="artist">Tatuador</SelectItem>
             <SelectItem value="admin">Co-dono</SelectItem>
@@ -85,8 +92,8 @@ function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void 
         </Select>
         <p className="text-xs text-muted-foreground">
           {roleType === "artist" && "Vê apenas a própria agenda e comissão."}
-          {roleType === "admin" && "Acesso completo ao sistema. Não aparece na agenda como artista."}
-          {roleType === "admin_artist" && "Acesso completo e também aparece na agenda, ranking e filtros."}
+          {roleType === "admin" && "Acesso completo. Não aparece na agenda como artista."}
+          {roleType === "admin_artist" && "Acesso completo e aparece na agenda e ranking."}
         </p>
       </div>
 
@@ -100,7 +107,6 @@ function InviteForm({ onCreated }: { onCreated: (invite: CreatedInvite) => void 
         <div className="space-y-2">
           <Label>Email</Label>
           <Input type="email" {...register("email")} placeholder="joao@studio.com" />
-          {formState.errors.email && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.email.message}</p>}
         </div>
         <div className="space-y-2">
           <Label>WhatsApp</Label>
@@ -167,9 +173,7 @@ function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () =>
             <Copy className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="outline" asChild title="Abrir em nova aba">
-            <a href={inviteUrl} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" />
-            </a>
+            <a href={inviteUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
           </Button>
         </div>
       </div>
@@ -187,6 +191,114 @@ function InviteResult({ invite, onDone }: { invite: CreatedInvite; onDone: () =>
         <Plus className="mr-2 h-4 w-4" /> Convidar outra pessoa
       </Button>
     </div>
+  )
+}
+
+function EditArtistDialog({
+  artist,
+  onSaved,
+}: {
+  artist: any
+  onSaved: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const { register, handleSubmit, formState, reset, setValue, watch } = useForm<EditValues>({
+    resolver: zodResolver(editSchema),
+    defaultValues: {
+      name: artist.name,
+      phone: artist.phone ?? "",
+      commissionPct: artist.commissionPct,
+      avatarColor: artist.avatarColor,
+      isActive: artist.isActive,
+    },
+  })
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        name: artist.name,
+        phone: artist.phone ?? "",
+        commissionPct: artist.commissionPct,
+        avatarColor: artist.avatarColor,
+        isActive: artist.isActive,
+      })
+    }
+  }, [open, artist, reset])
+
+  const isActive = watch("isActive")
+
+  async function onSubmit(values: EditValues) {
+    const res = await fetch(`/api/team/${artist.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    })
+    if (!res.ok) { toast.error("Erro ao salvar"); return }
+    toast.success("Tatuador atualizado")
+    setOpen(false)
+    onSaved()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5">
+          <Pencil className="h-3.5 w-3.5" /> Editar
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar — {artist.name}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome *</Label>
+            <Input {...register("name")} />
+            {formState.errors.name && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.name.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label>WhatsApp</Label>
+            <Input {...register("phone")} placeholder="(11) 99999-0000" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Comissão (%)</Label>
+              <Input type="number" step="1" min="0" max="100" {...register("commissionPct")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Cor do Avatar</Label>
+              <Input type="color" className="h-10 p-1" {...register("avatarColor")} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Conta ativa</p>
+              <p className="text-xs text-muted-foreground">Desativar impede o login imediatamente</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setValue("isActive", !isActive)}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                isActive ? "bg-primary" : "bg-muted"
+              )}
+            >
+              <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform", isActive ? "translate-x-6" : "translate-x-1")} />
+            </button>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="submit" className="flex-1" disabled={formState.isSubmitting}>
+              {formState.isSubmitting ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -210,10 +322,7 @@ export default function TeamPage() {
       .catch(() => {})
   }
 
-  useEffect(() => {
-    loadArtists()
-    loadInvites()
-  }, [])
+  useEffect(() => { loadArtists(); loadInvites() }, [])
 
   function handleOpen(v: boolean) {
     setOpen(v)
@@ -225,6 +334,20 @@ export default function TeamPage() {
     loadInvites()
   }
 
+  async function cancelInvite(token: string, name: string) {
+    const res = await fetch(`/api/invites/${token}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Erro ao cancelar convite"); return }
+    toast.success(`Convite de ${name} cancelado`)
+    loadInvites()
+  }
+
+  async function removeArtist(id: string, name: string) {
+    const res = await fetch(`/api/team/${id}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Erro ao remover tatuador"); return }
+    toast.success(`${name} removido do estúdio`)
+    loadArtists()
+  }
+
   return (
     <div className="p-4 md:p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -234,9 +357,7 @@ export default function TeamPage() {
         </div>
         <Dialog open={open} onOpenChange={handleOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Convidar
-            </Button>
+            <Button><Plus className="mr-2 h-4 w-4" /> Convidar</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -251,7 +372,7 @@ export default function TeamPage() {
         </Dialog>
       </div>
 
-      {/* Pending invites */}
+      {/* Convites pendentes */}
       {invites.length > 0 && (
         <div className="mb-6">
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">Convites Pendentes</h2>
@@ -264,7 +385,8 @@ export default function TeamPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{inv.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {inv.role === "admin" ? (inv.isArtist ? "Co-dono Tatuador" : "Co-dono") : "Tatuador"} · expira {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true, locale: ptBR })}
+                    {inv.role === "admin" ? (inv.isArtist ? "Co-dono Tatuador" : "Co-dono") : "Tatuador"} ·
+                    expira {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true, locale: ptBR })}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -273,8 +395,7 @@ export default function TeamPage() {
                     variant="ghost"
                     title="Copiar link"
                     onClick={() => {
-                      const url = `${window.location.origin}/invite/${inv.token}`
-                      navigator.clipboard.writeText(url)
+                      navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`)
                       toast.success("Link copiado!")
                     }}
                   >
@@ -285,6 +406,17 @@ export default function TeamPage() {
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </Button>
+                  <ConfirmDialog
+                    title="Cancelar convite?"
+                    description={`O link de ${inv.name} será invalidado e não poderá ser usado.`}
+                    confirmText="Cancelar convite"
+                    onConfirm={() => cancelInvite(inv.token, inv.name)}
+                    trigger={
+                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" title="Cancelar convite">
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  />
                 </div>
               </div>
             ))}
@@ -292,11 +424,10 @@ export default function TeamPage() {
         </div>
       )}
 
+      {/* Lista de membros */}
       {artists === null ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full" />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
         </div>
       ) : artists.length === 0 ? (
         <EmptyState
@@ -310,28 +441,22 @@ export default function TeamPage() {
           {artists.map((a: any) => {
             const isOwner = a.role === "admin"
             return (
-              <Card key={a.id}>
+              <Card key={a.id} className={cn(!a.isActive && "opacity-60")}>
                 <CardContent className="p-5">
                   <div className="flex items-start gap-3">
                     <AvatarInitials name={a.name} color={a.avatarColor} size={48} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate font-semibold">{a.name}</p>
-                        {isOwner && (
-                          <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        )}
+                        {isOwner && <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                            a.isActive
-                              ? "bg-green-500/15 text-green-700 dark:text-green-400"
-                              : "bg-gray-500/15 text-gray-600 dark:text-gray-400"
-                          )}
-                        >
-                          <span className={cn("h-1.5 w-1.5 rounded-full", a.isActive ? "bg-green-600 dark:bg-green-400" : "bg-gray-500 dark:bg-gray-400")} />
-                          {a.isActive ? "Ativo" : "Inativo"}
+                        <span className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                          a.isActive ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-red-500/15 text-red-700 dark:text-red-400"
+                        )}>
+                          <span className={cn("h-1.5 w-1.5 rounded-full", a.isActive ? "bg-green-600 dark:bg-green-400" : "bg-red-500")} />
+                          {a.isActive ? "Ativo" : "Desativado"}
                         </span>
                         {isOwner && (
                           <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
@@ -341,12 +466,30 @@ export default function TeamPage() {
                       </div>
                     </div>
                   </div>
+
                   <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {a.email}</p>
-                    <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {a.phone || "—"}</p>
-                    <p className="flex items-center gap-2"><Percent className="h-4 w-4" /> Comissão: {a.commissionPct}%</p>
-                    <p className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> {a.appointments?.length ?? 0} agendamentos</p>
+                    <p className="flex items-center gap-2"><Mail className="h-4 w-4 shrink-0" /><span className="truncate">{a.email}</span></p>
+                    <p className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" /> {a.phone || "—"}</p>
+                    <p className="flex items-center gap-2"><Percent className="h-4 w-4 shrink-0" /> Comissão: {a.commissionPct}%</p>
+                    <p className="flex items-center gap-2"><CalendarCheck className="h-4 w-4 shrink-0" /> {a.appointments?.length ?? 0} agendamentos</p>
                   </div>
+
+                  {!isOwner && (
+                    <div className="mt-4 flex gap-2 border-t pt-4">
+                      <EditArtistDialog artist={a} onSaved={loadArtists} />
+                      <ConfirmDialog
+                        title={`Remover ${a.name}?`}
+                        description="A conta será desativada imediatamente. O histórico de agendamentos é preservado. Esta ação pode ser revertida editando o tatuador."
+                        confirmText="Remover do estúdio"
+                        onConfirm={() => removeArtist(a.id, a.name)}
+                        trigger={
+                          <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" /> Remover
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )
