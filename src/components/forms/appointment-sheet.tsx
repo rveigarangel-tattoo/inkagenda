@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useForm } from "react-hook-form"
@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Trash2, UserPlus, ChevronLeft } from "lucide-react"
+import { Trash2, UserPlus, ChevronLeft, Check } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,11 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { PAYMENT_METHODS, TATTOO_STYLES, STATUS_LABELS } from "@/lib/utils"
+import { PAYMENT_METHODS, TATTOO_STYLES, STATUS_LABELS, cn } from "@/lib/utils"
 import type { Appointment, Client, User } from "@/types"
 
 const schema = z.object({
-  clientId: z.string().min(1, "Selecione um cliente"),
   artistId: z.string().min(1, "Selecione um tatuador"),
   service: z.string().min(1, "Serviço obrigatório"),
   style: z.string().optional(),
@@ -47,59 +46,62 @@ interface Props {
 
 export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate, isAdmin = true, onSaved }: Props) {
   const { data: session } = useSession()
+
+  // ── client state (handled outside RHF) ──────────────────────────────────
   const [clients, setClients] = useState<Client[]>([])
+  const [clientName, setClientName] = useState("")
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [clientError, setClientError] = useState("")
+  const [clientMode, setClientMode] = useState<"search" | "register">("search")
+  const [regPhone, setRegPhone] = useState("")
+  const [regEmail, setRegEmail] = useState("")
+  const [registering, setRegistering] = useState(false)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── artist state ─────────────────────────────────────────────────────────
   const [artists, setArtists] = useState<User[]>([])
-  const [clientSearch, setClientSearch] = useState("")
-  const [clientMode, setClientMode] = useState<"existing" | "new">("existing")
-  const [newName, setNewName] = useState("")
-  const [newPhone, setNewPhone] = useState("")
-  const [creatingClient, setCreatingClient] = useState(false)
 
   const { register, handleSubmit, control, setValue, watch, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      clientId: "", artistId: "", service: "Tatuagem", style: "", date: "", time: "",
+      artistId: "", service: "Tatuagem", style: "", date: "", time: "",
       durationMinutes: 60, value: 0, deposit: 0, paymentMethod: "", status: "pending", notes: "",
     },
   })
 
+  // close suggestions on outside click
   useEffect(() => {
-    if (!open) { setClientMode("existing"); setNewName(""); setNewPhone(""); return }
+    function onDown(e: MouseEvent) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [])
+
+  // fetch lists on open
+  useEffect(() => {
+    if (!open) {
+      setClientMode("search")
+      setRegPhone("")
+      setRegEmail("")
+      setClientError("")
+      return
+    }
     fetch("/api/clients").then((r) => r.json()).then(setClients).catch(() => {})
     if (isAdmin) fetch("/api/team").then((r) => r.json()).then(setArtists).catch(() => {})
   }, [open, isAdmin])
 
-  async function createClient() {
-    if (!newName.trim()) return
-    setCreatingClient(true)
-    try {
-      const res = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), phone: newPhone.trim() || undefined }),
-      })
-      if (!res.ok) throw new Error()
-      const created: Client = await res.json()
-      setClients((prev) => [created, ...prev])
-      setValue("clientId", created.id)
-      setClientSearch("")
-      setNewName("")
-      setNewPhone("")
-      setClientMode("existing")
-      toast.success("Cliente criado e selecionado")
-    } catch {
-      toast.error("Erro ao criar cliente")
-    } finally {
-      setCreatingClient(false)
-    }
-  }
-
+  // reset form values when appointment changes
   useEffect(() => {
     if (!open) return
     if (appointment) {
       const d = new Date(appointment.date)
       reset({
-        clientId: appointment.clientId,
         artistId: appointment.artistId ?? "",
         service: appointment.service,
         style: appointment.style ?? "",
@@ -112,21 +114,94 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
         status: appointment.status,
         notes: appointment.notes ?? "",
       })
+      setClientName(appointment.client?.name ?? "")
+      setSelectedClientId(appointment.clientId ?? null)
     } else {
       const d = defaultDate ?? new Date()
       const myId = (session?.user as any)?.id ?? ""
       reset({
-        clientId: "", artistId: isAdmin ? "" : myId, service: "Tatuagem", style: "",
+        artistId: isAdmin ? "" : myId, service: "Tatuagem", style: "",
         date: format(d, "yyyy-MM-dd"), time: format(d, "HH:mm"),
         durationMinutes: 60, value: 0, deposit: 0, paymentMethod: "", status: "pending", notes: "",
       })
+      setClientName("")
+      setSelectedClientId(null)
     }
   }, [appointment, defaultDate, open, reset])
 
+  // autocomplete suggestions
+  const suggestions = clientName.trim().length > 0
+    ? clients.filter((c) => c.name.toLowerCase().includes(clientName.toLowerCase())).slice(0, 6)
+    : []
+
+  function selectSuggestion(c: Client) {
+    setClientName(c.name)
+    setSelectedClientId(c.id)
+    setShowSuggestions(false)
+    setClientError("")
+  }
+
+  // register client inline then auto-select
+  async function registerClient() {
+    if (!clientName.trim()) { setClientError("Nome obrigatório"); return }
+    setRegistering(true)
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: clientName.trim(),
+          phone: regPhone.trim() || undefined,
+          email: regEmail.trim() || undefined,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const created: Client = await res.json()
+      setClients((prev) => [created, ...prev])
+      setSelectedClientId(created.id)
+      setClientError("")
+      setClientMode("search")
+      setRegPhone("")
+      setRegEmail("")
+      toast.success("Cliente cadastrado e selecionado")
+    } catch {
+      toast.error("Erro ao cadastrar cliente")
+    } finally {
+      setRegistering(false)
+    }
+  }
+
   async function onSubmit(values: FormValues) {
+    if (!clientName.trim()) {
+      setClientError("Informe o nome do cliente")
+      return
+    }
+    setClientError("")
+
+    let resolvedClientId = selectedClientId
+
+    // name typed but no existing client picked → create on the fly
+    if (!resolvedClientId) {
+      try {
+        const res = await fetch("/api/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: clientName.trim() }),
+        })
+        if (!res.ok) throw new Error()
+        const created: Client = await res.json()
+        setClients((prev) => [created, ...prev])
+        setSelectedClientId(created.id)
+        resolvedClientId = created.id
+      } catch {
+        toast.error("Erro ao criar cliente")
+        return
+      }
+    }
+
     const dateTime = new Date(`${values.date}T${values.time}:00`)
     const payload = {
-      clientId: values.clientId,
+      clientId: resolvedClientId,
       artistId: values.artistId,
       service: values.service,
       style: values.style,
@@ -155,17 +230,11 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
   async function onDelete() {
     if (!appointment) return
     const res = await fetch(`/api/appointments/${appointment.id}`, { method: "DELETE" })
-    if (!res.ok) {
-      toast.error("Erro ao excluir")
-      return
-    }
+    if (!res.ok) { toast.error("Erro ao excluir"); return }
     toast.success("Agendamento excluído")
     onOpenChange(false)
     onSaved?.()
   }
-
-  const clientId = watch("clientId")
-  const filteredClients = clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -185,66 +254,134 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </Link>
           )}
         </SheetHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+          {/* ── Cliente ── */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Cliente *</Label>
-              <button
-                type="button"
-                onClick={() => { setClientMode(clientMode === "new" ? "existing" : "new"); setNewName(""); setNewPhone("") }}
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                {clientMode === "new"
-                  ? <><ChevronLeft className="h-3 w-3" /> Selecionar existente</>
-                  : <><UserPlus className="h-3 w-3" /> Novo cliente</>}
-              </button>
+              {clientMode === "search" ? (
+                <button
+                  type="button"
+                  onClick={() => { setClientMode("register"); setShowSuggestions(false) }}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <UserPlus className="h-3 w-3" /> Cadastrar cliente
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setClientMode("search"); setRegPhone(""); setRegEmail("") }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft className="h-3 w-3" /> Voltar
+                </button>
+              )}
             </div>
 
-            {clientMode === "existing" ? (
-              <>
-                <Input placeholder="Buscar cliente..." value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} />
-                <Select value={clientId} onValueChange={(v) => setValue("clientId", v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-                  <SelectContent>
-                    {filteredClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {formState.errors.clientId && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.clientId.message}</p>}
-              </>
+            {clientMode === "search" ? (
+              <div className="relative">
+                <div className="relative">
+                  <Input
+                    ref={inputRef}
+                    placeholder="Nome do cliente..."
+                    value={clientName}
+                    onChange={(e) => {
+                      setClientName(e.target.value)
+                      setSelectedClientId(null)
+                      setShowSuggestions(true)
+                      setClientError("")
+                    }}
+                    onFocus={() => clientName.trim() && setShowSuggestions(true)}
+                    className={cn(clientError && "border-red-500")}
+                  />
+                  {selectedClientId && (
+                    <Check className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
+                  )}
+                </div>
+
+                {/* suggestions dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border bg-card shadow-lg"
+                  >
+                    {suggestions.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); selectSuggestion(c) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+                      >
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          {c.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{c.name}</p>
+                          {c.phone && <p className="truncate text-xs text-muted-foreground">{c.phone}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {clientName.trim() && !selectedClientId && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Novo cliente será criado com este nome ao salvar.
+                  </p>
+                )}
+                {selectedClientId && (
+                  <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                    Cliente existente selecionado.
+                  </p>
+                )}
+                {clientError && <p className="text-xs text-red-600 dark:text-red-400">{clientError}</p>}
+              </div>
             ) : (
+              /* ── Cadastrar cliente inline ── */
               <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nome *</Label>
                   <Input
-                    placeholder="Nome completo"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createClient())}
                     autoFocus
+                    placeholder="Nome completo"
+                    value={clientName}
+                    onChange={(e) => { setClientName(e.target.value); setClientError("") }}
                   />
+                  {clientError && <p className="text-xs text-red-600 dark:text-red-400">{clientError}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Telefone</Label>
                   <Input
                     placeholder="(11) 99999-9999"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createClient())}
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
                   />
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   className="w-full"
-                  disabled={!newName.trim() || creatingClient}
-                  onClick={createClient}
+                  disabled={!clientName.trim() || registering}
+                  onClick={registerClient}
                 >
-                  {creatingClient ? "Criando..." : "Criar e selecionar"}
+                  {registering ? "Cadastrando..." : "Cadastrar e selecionar"}
                 </Button>
               </div>
             )}
           </div>
 
+          {/* ── Tatuador (admin only) ── */}
           {isAdmin && (
             <div className="space-y-2">
               <Label>Tatuador *</Label>
@@ -258,10 +395,12 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </div>
           )}
 
+          {/* ── Serviço + Estilo ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Serviço *</Label>
               <Input {...register("service")} />
+              {formState.errors.service && <p className="text-xs text-red-600 dark:text-red-400">{formState.errors.service.message}</p>}
             </div>
             <div className="space-y-2">
               <Label>Estilo</Label>
@@ -274,6 +413,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </div>
           </div>
 
+          {/* ── Data + Hora + Duração ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Data *</Label>
@@ -289,6 +429,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </div>
           </div>
 
+          {/* ── Valor + Depósito ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -300,6 +441,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </div>
           </div>
 
+          {/* ── Pagamento + Status ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Pagamento</Label>
@@ -321,11 +463,13 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </div>
           </div>
 
+          {/* ── Notas ── */}
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea {...register("notes")} />
           </div>
 
+          {/* ── Actions ── */}
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={formState.isSubmitting}>
               {formState.isSubmitting ? "Salvando..." : "Salvar"}
