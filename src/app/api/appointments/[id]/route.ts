@@ -38,6 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     include: { client: true, artist: true },
   })
 
+  // Appointment concluded → create income transaction (idempotent)
   if (body.status === "completed" && existing.status !== "completed") {
     const tx = await prisma.transaction.findFirst({ where: { appointmentId: appt.id } })
     if (!tx) {
@@ -48,7 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           artistId: appt.artistId,
           type: "income",
           category: "Serviço",
-          description: `Pagamento - ${appt.service}`,
+          description: `${appt.client ? appt.client.name + " — " : ""}${appt.service}`,
           amount: appt.value,
           paymentMethod: appt.paymentMethod,
           date: new Date(),
@@ -56,6 +57,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       })
     }
   }
+
+  // Appointment reopened / cancelled → reverse the transaction
+  if (body.status && body.status !== "completed" && existing.status === "completed") {
+    await prisma.transaction.deleteMany({ where: { appointmentId: appt.id } })
+  }
+
   return NextResponse.json(appt)
 }
 

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Trash2, UserPlus, ChevronLeft, Check } from "lucide-react"
+import { Trash2, UserPlus, ChevronLeft, Check, CheckCircle2, XCircle, X } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,6 +57,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
   const [regPhone, setRegPhone] = useState("")
   const [regEmail, setRegEmail] = useState("")
   const [registering, setRegistering] = useState(false)
+  const [quickSaving, setQuickSaving] = useState(false)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -227,6 +228,33 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
     onSaved?.()
   }
 
+  async function quickStatus(newStatus: string) {
+    if (!appointment) return
+    setQuickSaving(true)
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) throw new Error()
+      const labels: Record<string, string> = {
+        completed: "Tattoo concluída!",
+        cancelled: "Agendamento cancelado",
+        confirmed: "Agendamento confirmado",
+        pending: "Agendamento reaberto",
+        no_show: "Marcado como no-show",
+      }
+      toast.success(labels[newStatus] ?? "Status atualizado")
+      onOpenChange(false)
+      onSaved?.()
+    } catch {
+      toast.error("Erro ao atualizar status")
+    } finally {
+      setQuickSaving(false)
+    }
+  }
+
   async function onDelete() {
     if (!appointment) return
     const res = await fetch(`/api/appointments/${appointment.id}`, { method: "DELETE" })
@@ -254,6 +282,55 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </Link>
           )}
         </SheetHeader>
+
+        {/* ── Quick status actions (edit only) ── */}
+        {appointment && appointment.status !== "blocked" && (
+          <div className="flex gap-2 pb-1">
+            {appointment.status === "completed" ? (
+              <>
+                <div className="flex flex-1 items-center gap-1.5 rounded-lg bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" /> Concluída
+                </div>
+                <Button type="button" size="sm" variant="outline" disabled={quickSaving} onClick={() => quickStatus("confirmed")}>
+                  Reabrir
+                </Button>
+              </>
+            ) : appointment.status === "cancelled" || appointment.status === "no_show" ? (
+              <>
+                <div className="flex flex-1 items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400">
+                  <XCircle className="h-4 w-4 shrink-0" />
+                  {appointment.status === "cancelled" ? "Cancelada" : "No-show"}
+                </div>
+                <Button type="button" size="sm" variant="outline" disabled={quickSaving} onClick={() => quickStatus("pending")}>
+                  Reabrir
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 border-green-500/30 text-green-700 hover:bg-green-500/10 dark:text-green-400"
+                  disabled={quickSaving}
+                  onClick={() => quickStatus("completed")}
+                >
+                  <Check className="mr-1.5 h-3.5 w-3.5" /> Concluir
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                  disabled={quickSaving}
+                  onClick={() => quickStatus("cancelled")}
+                >
+                  <X className="mr-1.5 h-3.5 w-3.5" /> Cancelar
+                </Button>
+              </>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 

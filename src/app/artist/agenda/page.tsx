@@ -5,7 +5,7 @@ import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, CalendarDays } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, CalendarDays, CheckCircle2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AppointmentSheet } from "@/components/forms/appointment-sheet"
@@ -100,14 +100,23 @@ function AppointmentBlock({ appt, top, height, isDark, draggingId, onEdit, onDra
   const ref = useRef<HTMLDivElement>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>()
   const isBlocked = appt.status === "blocked"
+  const isCompleted = appt.status === "completed"
+  const isCancelled = appt.status === "cancelled" || appt.status === "no_show"
   const isDragging = draggingId === appt.id
   const color = appt.artist?.avatarColor ?? "#7c3aed"
+
+  const bgColor = isBlocked ? undefined
+    : isCompleted ? (isDark ? "#16a34a35" : "#16a34a22")
+    : isCancelled ? (isDark ? "#71717a22" : "#71717a30")
+    : `${color}${isDark ? "40" : "CC"}`
+
+  const borderCol = isCompleted ? "#16a34a" : isCancelled ? "#71717a" : color
 
   return (
     <div
       ref={ref}
-      draggable={!isBlocked}
-      onDragStart={isBlocked ? undefined : (e) => {
+      draggable={!isBlocked && !isCancelled}
+      onDragStart={isBlocked || isCancelled ? undefined : (e) => {
         const rect = e.currentTarget.getBoundingClientRect()
         onDragStart(e, appt, e.clientY - rect.top)
       }}
@@ -122,27 +131,38 @@ function AppointmentBlock({ appt, top, height, isDark, draggingId, onEdit, onDra
       className={cn(
         "absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-4 text-[11px] select-none transition-opacity",
         isBlocked ? "cursor-default" : "cursor-grab active:cursor-grabbing hover:brightness-110",
-        isDragging && "opacity-30"
+        isDragging && "opacity-30",
+        isCancelled && "opacity-60"
       )}
       style={{
         top,
         height,
-        borderColor: color,
+        borderColor: borderCol,
         color: isDark ? "white" : "black",
-        backgroundColor: isBlocked ? undefined : `${color}${isDark ? "40" : "CC"}`,
+        backgroundColor: bgColor,
         backgroundImage: isBlocked
           ? `repeating-linear-gradient(45deg, ${color}${isDark ? "25" : "B0"} 0px, ${color}${isDark ? "25" : "B0"} 5px, transparent 5px, transparent 12px)`
           : undefined,
       }}
     >
       <div className="px-2 py-1 leading-tight">
-        <p className="font-semibold truncate">
+        <p className={cn("font-semibold truncate", isCancelled && "line-through")}>
           {formatTime(appt.date)}
           {!isBlocked && appt.client ? ` · ${appt.client.name}` : isBlocked ? " Bloqueado" : ""}
         </p>
         {!isBlocked && <p className="truncate opacity-75">{appt.service}</p>}
       </div>
-      {!isBlocked && (
+      {isCompleted && (
+        <div className="absolute right-1 top-1">
+          <CheckCircle2 className="h-3 w-3 text-green-500" />
+        </div>
+      )}
+      {isCancelled && (
+        <div className="absolute right-1 top-1">
+          <X className="h-3 w-3 text-gray-400" />
+        </div>
+      )}
+      {!isBlocked && !isCancelled && (
         <div
           className="absolute bottom-0 left-0 right-0 flex h-3 cursor-ns-resize items-center justify-center"
           onPointerDown={(e) => { e.stopPropagation(); onResizeStart(e, appt) }}
@@ -273,10 +293,21 @@ function MonthView({ monthStart, appointments, onEdit, onNewDay }: MonthViewProp
                   <div
                     key={a.id}
                     onClick={(e) => { e.stopPropagation(); onEdit(a) }}
-                    className="truncate rounded px-1 py-0.5 text-[10px] font-medium text-white"
-                    style={{ backgroundColor: a.artist?.avatarColor ?? "#7c3aed" }}
+                    className={cn(
+                      "truncate rounded px-1 py-0.5 text-[10px] font-medium",
+                      a.status === "cancelled" || a.status === "no_show"
+                        ? "opacity-60 line-through text-foreground"
+                        : "text-white"
+                    )}
+                    style={{
+                      backgroundColor: a.status === "completed"
+                        ? "#16a34a35"
+                        : a.status === "cancelled" || a.status === "no_show"
+                        ? "#71717a30"
+                        : a.artist?.avatarColor ?? "#7c3aed",
+                    }}
                   >
-                    {formatTime(a.date)} {a.client?.name ?? a.service}
+                    {formatTime(a.date)} {a.client?.name ?? a.service}{a.status === "completed" ? " ✓" : ""}
                   </div>
                 ))}
                 {dayAppts.length > 3 && (
