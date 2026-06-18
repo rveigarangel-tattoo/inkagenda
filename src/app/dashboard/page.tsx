@@ -340,7 +340,7 @@ export default function DashboardPage() {
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" href="/dashboard/finances" />
+          <StatCard label="Receita no Período" value={formatCurrency(data.kpis.revenue)} subtitle={`Estúdio: ${formatCurrency(data.kpis.studioNet)}`} icon={DollarSign} change={data.kpis.revenueChange} variant="primary" href="/dashboard/finances" />
           <StatCard label="Agendamentos" value={String(data.kpis.appointments)} icon={CalendarCheck} change={data.kpis.appointmentsChange} href="/dashboard/schedule" />
           <StatCard label="Taxa de Conclusão" value={`${data.kpis.completionRate.toFixed(0)}%`} icon={CheckCircle} change={data.kpis.completionRateChange} href="/dashboard/schedule" />
           <StatCard label="Ticket Médio" value={formatCurrency(data.kpis.avgTicket)} icon={Receipt} change={data.kpis.avgTicketChange} href="/dashboard/finances" />

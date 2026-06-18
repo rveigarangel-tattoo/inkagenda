@@ -18,7 +18,7 @@ const HOUR_HEIGHT = 60 // px per hour (= 1px per min)
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60
 const SNAP = 15 // snap to 15-min increments
 
-type ViewMode = "week" | "team" | "month"
+type ViewMode = "week" | "team" | "month" | "day"
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function minutesFromDate(d: Date): number {
@@ -384,6 +384,7 @@ export default function SchedulePage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [teamDay, setTeamDay] = useState(() => new Date())
   const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()))
+  const [dayDate, setDayDate] = useState(() => new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [artists, setArtists] = useState<User[]>([])
   const [artistFilter, setArtistFilter] = useState("all")
@@ -425,6 +426,9 @@ export default function SchedulePage() {
     } else if (viewMode === "team") {
       from = new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 0, 0, 0).toISOString()
       to = new Date(teamDay.getFullYear(), teamDay.getMonth(), teamDay.getDate(), 23, 59, 59).toISOString()
+    } else if (viewMode === "day") {
+      from = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 0, 0, 0).toISOString()
+      to = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 23, 59, 59).toISOString()
     } else {
       from = weekStart.toISOString()
       to = endOfWeek(weekStart, { weekStartsOn: 1 }).toISOString()
@@ -437,7 +441,7 @@ export default function SchedulePage() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load() }, [weekStart, teamDay, monthStart, artistFilter, viewMode])
+  useEffect(() => { load() }, [weekStart, teamDay, monthStart, dayDate, artistFilter, viewMode])
   useEffect(() => { fetch("/api/team").then((r) => r.json()).then(setArtists).catch(() => {}) }, [])
 
   // resize pointer events
@@ -582,7 +586,18 @@ export default function SchedulePage() {
     color: artist.avatarColor,
   }))
 
-  const columns = viewMode === "week" ? weekColumns : teamColumns
+  const dayColumns = [{
+    key: dayDate.toISOString(),
+    date: dayDate,
+    label: format(dayDate, "EEE dd", { locale: ptBR }),
+    isToday: isSameDay(dayDate, new Date()),
+    appts: appointments.filter((a) => isSameDay(new Date(a.date), dayDate)),
+    artistId: undefined as string | undefined,
+  }]
+
+  const columns = viewMode === "week" ? weekColumns
+    : viewMode === "day" ? dayColumns
+    : teamColumns
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -593,6 +608,9 @@ export default function SchedulePage() {
           <div className="flex rounded-lg border overflow-hidden">
             <button onClick={() => setViewMode("week")} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors", viewMode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
               <CalIcon className="h-3.5 w-3.5" /> Semana
+            </button>
+            <button onClick={() => setViewMode("day")} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l", viewMode === "day" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+              Dia
             </button>
             <button onClick={() => setViewMode("team")} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l", viewMode === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
               <Users className="h-3.5 w-3.5" /> Equipe
@@ -633,6 +651,15 @@ export default function SchedulePage() {
               <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight className="h-4 w-4" /></Button>
               <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>Hoje</Button>
             </>
+          ) : viewMode === "day" ? (
+            <>
+              <Button variant="outline" size="icon" onClick={() => setDayDate(addDays(dayDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+              <span className="text-sm font-medium min-w-[160px] text-center capitalize">
+                {format(dayDate, "EEEE, dd 'de' MMM", { locale: ptBR })}
+              </span>
+              <Button variant="outline" size="icon" onClick={() => setDayDate(addDays(dayDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="sm" onClick={() => setDayDate(new Date())}>Hoje</Button>
+            </>
           ) : (
             <>
               <Button variant="outline" size="icon" onClick={() => setTeamDay(addDays(teamDay, -1))}><ChevronLeft className="h-4 w-4" /></Button>
@@ -652,7 +679,7 @@ export default function SchedulePage() {
               </SelectContent>
             </Select>
           )}
-          <Button size="sm" onClick={() => openNew(viewMode === "team" ? teamDay : new Date(), 0)}>
+          <Button size="sm" onClick={() => openNew(viewMode === "team" ? teamDay : viewMode === "day" ? dayDate : new Date(), 0)}>
             <Plus className="h-4 w-4" /> Novo
           </Button>
         </div>
@@ -675,9 +702,10 @@ export default function SchedulePage() {
             }}
           />
         ) : (
-          <div className="min-w-[640px]">
+          <div className={viewMode === "day" ? "" : "min-w-[640px]"}>
             {/* Column headers */}
-            <div className="sticky top-0 z-20 flex border-b bg-card" style={{ paddingLeft: 52 }}>
+            <div className="sticky top-0 z-20 flex border-b bg-card">
+              <div className="shrink-0 sticky left-0 z-20 bg-card" style={{ width: 52 }} />
               {columns.map((col) => (
                 <div
                   key={col.key}
@@ -701,7 +729,7 @@ export default function SchedulePage() {
             {/* Time rows + columns */}
             <div className="flex pt-2">
               {/* Time gutter */}
-              <div className="shrink-0" style={{ width: 52 }}>
+              <div className="shrink-0 sticky left-0 z-10 bg-card" style={{ width: 52 }}>
                 {hours.map((h) => (
                   <div
                     key={h}

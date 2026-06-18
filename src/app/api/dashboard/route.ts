@@ -135,11 +135,15 @@ export async function GET(req: NextRequest) {
         })
       : []
 
+  const totalArtistCommissions = ranking.reduce((s, r) => s + r.commission, 0)
+  const studioNet = revenue - totalArtistCommissions
+
   return NextResponse.json({
     isAdmin: sessionRole === "admin",
     artists: artistsForFilter,
     kpis: {
       revenue,
+      studioNet,
       appointments: activeAppts.length,
       completionRate,
       avgTicket,

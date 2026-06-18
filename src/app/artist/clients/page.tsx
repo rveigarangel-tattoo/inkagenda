@@ -1,5 +1,6 @@
 "use client"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Plus, Search, Phone, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,27 +61,29 @@ export default function ArtistClientsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((c) => (
-            <Card key={c.id}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <AvatarInitials name={c.name} size={44} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{c.name}</p>
-                  {c.phone && (
-                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" /> {c.phone}
+            <Link key={c.id} href={`/artist/clients/${c.id}`} className="block">
+              <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.99]">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <AvatarInitials name={c.name} size={44} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{c.name}</p>
+                    {c.phone && (
+                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" /> {c.phone}
+                      </p>
+                    )}
+                    {c.email && (
+                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3" /> {c.email}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-primary">
+                      {c.appointments?.length ?? 0} sessões
                     </p>
-                  )}
-                  {c.email && (
-                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                      <Mail className="h-3 w-3" /> {c.email}
-                    </p>
-                  )}
-                  <p className="mt-1 text-xs text-primary">
-                    {c.appointments?.length ?? 0} sessões
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

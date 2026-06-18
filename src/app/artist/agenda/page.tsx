@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import {
   addDays, startOfWeek, endOfWeek, format, isSameDay,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths,
+  startOfDay, endOfDay,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ChevronLeft, ChevronRight, Plus, Lock, LockOpen, CalendarDays, CheckCircle2, X } from "lucide-react"
@@ -359,12 +360,13 @@ function MonthView({ monthStart, appointments, onEdit, onNewDay }: MonthViewProp
 }
 
 // ─── main page ───────────────────────────────────────────────────────────────
-type ViewMode = "week" | "month"
+type ViewMode = "week" | "month" | "day"
 
 export default function ArtistAgendaPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("week")
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()))
+  const [dayDate, setDayDate] = useState(() => new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [blockMode, setBlockMode] = useState(false)
@@ -399,6 +401,9 @@ export default function ArtistAgendaPage() {
       const me = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 })
       from = ms.toISOString()
       to = me.toISOString()
+    } else if (viewMode === "day") {
+      from = startOfDay(dayDate).toISOString()
+      to = endOfDay(dayDate).toISOString()
     } else {
       from = weekStart.toISOString()
       to = endOfWeek(weekStart, { weekStartsOn: 1 }).toISOString()
@@ -409,7 +414,7 @@ export default function ArtistAgendaPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [weekStart, monthStart, viewMode])
+  useEffect(() => { load() }, [weekStart, monthStart, dayDate, viewMode])
 
   // pointer resize events
   useEffect(() => {
@@ -534,19 +539,19 @@ export default function ArtistAgendaPage() {
         <div className="flex rounded-lg border overflow-hidden">
           <button
             onClick={() => setViewMode("week")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors",
-              viewMode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors", viewMode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             Semana
           </button>
           <button
+            onClick={() => setViewMode("day")}
+            className={cn("flex items-center gap-1.5 border-l px-3 py-1.5 text-sm transition-colors", viewMode === "day" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
+            Dia
+          </button>
+          <button
             onClick={() => setViewMode("month")}
-            className={cn(
-              "flex items-center gap-1.5 border-l px-3 py-1.5 text-sm transition-colors",
-              viewMode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
+            className={cn("flex items-center gap-1.5 border-l px-3 py-1.5 text-sm transition-colors", viewMode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             <CalendarDays className="h-3.5 w-3.5" /> Mês
           </button>
@@ -564,28 +569,45 @@ export default function ArtistAgendaPage() {
             <Button variant="outline" size="icon" onClick={() => setMonthStart(addMonths(monthStart, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setMonthStart(startOfMonth(new Date()))}>
-              Hoje
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setMonthStart(startOfMonth(new Date()))}>Hoje</Button>
             <Button size="sm" onClick={() => { setSelected(null); setDefaultDate(new Date()); setSheetOpen(true) }}>
+              <Plus className="mr-1 h-4 w-4" /> Novo
+            </Button>
+          </div>
+        ) : viewMode === "day" ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setBlockMode((b) => !b)}
+              title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário"}
+              className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground")}
+            >
+              {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              {blockMode ? "Bloqueando" : "Bloquear"}
+            </button>
+            <Button variant="outline" size="icon" onClick={() => setDayDate(addDays(dayDate, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[160px] text-center text-sm font-medium capitalize">
+              {format(dayDate, "EEE, dd 'de' MMM", { locale: ptBR })}
+            </span>
+            <Button variant="outline" size="icon" onClick={() => setDayDate(addDays(dayDate, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setDayDate(new Date())}>Hoje</Button>
+            <Button size="sm" onClick={() => openNew(dayDate, 9 * 60 - START_HOUR * 60)}>
               <Plus className="mr-1 h-4 w-4" /> Novo
             </Button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            {/* block mode */}
             <button
               onClick={() => setBlockMode((b) => !b)}
               title={blockMode ? "Sair do modo bloqueio" : "Bloquear horário (clique num slot vazio)"}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground"
-              )}
+              className={cn("flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors", blockMode ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400" : "text-muted-foreground hover:text-foreground")}
             >
               {blockMode ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
               {blockMode ? "Bloqueando" : "Bloquear"}
             </button>
-
             <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, -7))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -595,9 +617,7 @@ export default function ArtistAgendaPage() {
             <Button variant="outline" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
-              Hoje
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>Hoje</Button>
             <Button size="sm" onClick={() => openNew(new Date(), 9 * 60 - START_HOUR * 60)}>
               <Plus className="mr-1 h-4 w-4" /> Novo
             </Button>
@@ -617,10 +637,11 @@ export default function ArtistAgendaPage() {
             onNewDay={openNewFromDay}
           />
         ) : (
-          <div className="min-w-[640px]">
+          <div className={viewMode !== "day" ? "min-w-[640px]" : ""}>
             {/* column headers */}
-            <div className="sticky top-0 z-20 flex border-b bg-card" style={{ paddingLeft: 52 }}>
-              {days.map((day) => {
+            <div className="sticky top-0 z-20 flex border-b bg-card">
+              <div className="shrink-0 sticky left-0 z-20 bg-card" style={{ width: 52 }} />
+              {(viewMode === "day" ? [dayDate] : days).map((day) => {
                 const isToday = isSameDay(day, new Date())
                 const label = format(day, "EEE dd", { locale: ptBR })
                 const [dayName, dayNum] = [label.split(" ")[0], label.split(" ").pop()]
@@ -635,7 +656,7 @@ export default function ArtistAgendaPage() {
 
             {/* time gutter + columns */}
             <div className="flex pt-2">
-              <div className="shrink-0" style={{ width: 52 }}>
+              <div className="shrink-0 sticky left-0 z-10 bg-card" style={{ width: 52 }}>
                 {hours.map((h) => (
                   <div
                     key={h}
@@ -647,7 +668,7 @@ export default function ArtistAgendaPage() {
                 ))}
               </div>
 
-              {days.map((day) => {
+              {(viewMode === "day" ? [dayDate] : days).map((day) => {
                 const isToday = isSameDay(day, new Date())
                 const dayAppts = appointments.filter((a) => isSameDay(new Date(a.date), day))
                 return (

@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Pencil } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
@@ -10,16 +12,25 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ClientForm } from "@/components/forms/client-form"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
 export default function ClientDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = String(params.id)
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [open, setOpen] = useState(false)
+
+  async function deleteClient() {
+    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Erro ao excluir cliente"); return }
+    toast.success("Cliente excluído")
+    router.push("/dashboard/clients")
+  }
 
   async function load() {
     setLoading(true)
@@ -107,25 +118,28 @@ export default function ClientDetailPage() {
                 )}
               </div>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Pencil className="mr-2 h-4 w-4" /> Editar
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Editar Cliente</DialogTitle>
-                </DialogHeader>
-                <ClientForm
-                  client={client}
-                  onSuccess={() => {
-                    setOpen(false)
-                    load()
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Editar Cliente</DialogTitle>
+                  </DialogHeader>
+                  <ClientForm client={client} onSuccess={() => { setOpen(false); load() }} />
+                </DialogContent>
+              </Dialog>
+              <ConfirmDialog
+                trigger={<Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>}
+                title="Excluir cliente?"
+                description="O histórico de agendamentos será mantido, mas sem vínculo ao cliente. Esta ação não pode ser desfeita."
+                confirmText="Excluir"
+                onConfirm={deleteClient}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

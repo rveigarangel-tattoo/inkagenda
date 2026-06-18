@@ -26,3 +26,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const client = await prisma.client.update({ where: { id: params.id }, data })
   return NextResponse.json(client)
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const studioId = (session.user as any).studioId
+  const existing = await prisma.client.findFirst({ where: { id: params.id, studioId } })
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  // Detach appointments (keep history, remove client link)
+  await prisma.appointment.updateMany({ where: { clientId: params.id }, data: { clientId: null } })
+  await prisma.client.delete({ where: { id: params.id } })
+  return NextResponse.json({ ok: true })
+}

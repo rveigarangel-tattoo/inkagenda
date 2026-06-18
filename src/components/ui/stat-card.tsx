@@ -12,9 +12,10 @@ interface StatCardProps {
   changeLabel?: string
   variant?: "primary" | "default"
   href?: string
+  subtitle?: string
 }
 
-export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs período anterior", variant = "default", href }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs período anterior", variant = "default", href, subtitle }: StatCardProps) {
   const positive = (change ?? 0) >= 0
   const isPrimary = variant === "primary"
   const card = (
@@ -35,6 +36,11 @@ export function StatCard({ label, value, icon: Icon, change, changeLabel = "vs p
           </div>
         </div>
         <p className={cn("mt-3 text-2xl font-bold", isPrimary && "text-white")}>{value}</p>
+        {subtitle && (
+          <p className={cn("mt-0.5 text-xs", isPrimary ? "text-primary-foreground/70" : "text-muted-foreground")}>
+            {subtitle}
+          </p>
+        )}
         {change !== undefined && (
           <p className={cn(
             "mt-1 flex items-center gap-1 text-xs",

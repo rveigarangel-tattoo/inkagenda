@@ -1,29 +1,51 @@
 "use client"
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ClientForm } from "@/components/forms/client-form"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
 export default function ArtistClientDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = String(params.id)
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
-  useEffect(() => {
-    fetch(`/api/clients/${id}`)
-      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
-      .then((d) => { if (!d?.id) throw new Error(); setClient(d) })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false))
-  }, [id])
+  async function load() {
+    try {
+      const r = await fetch(`/api/clients/${id}`)
+      if (!r.ok) throw new Error()
+      const d = await r.json()
+      if (!d?.id) throw new Error()
+      setClient(d)
+    } catch {
+      setNotFound(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [id])
+
+  async function deleteClient() {
+    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Erro ao excluir cliente"); return }
+    toast.success("Cliente excluído")
+    router.push("/artist/clients")
+  }
 
   if (loading) {
     return (
@@ -63,29 +85,50 @@ export default function ArtistClientDetailPage() {
 
       <Card className="mb-6">
         <CardContent className="p-5">
-          <div className="flex items-start gap-4">
-            <AvatarInitials name={client.name} color={client.artist?.avatarColor} size={56} />
-            <div>
-              <h1 className="text-2xl font-bold">{client.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {client.phone || "—"}{client.email ? ` · ${client.email}` : ""}
-              </p>
-              {client.birthdate && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <AvatarInitials name={client.name} color={client.artist?.avatarColor} size={56} />
+              <div>
+                <h1 className="text-2xl font-bold">{client.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Nascimento: {formatDate(client.birthdate, "dd/MM/yyyy")}
+                  {client.phone || "—"}{client.email ? ` · ${client.email}` : ""}
                 </p>
-              )}
-              {client.notes && <p className="mt-2 max-w-xl text-sm">{client.notes}</p>}
-              {client.healthNotes && (
-                <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
-                  <span className="font-semibold">Saúde: </span>
-                  {client.healthNotes}
-                </div>
-              )}
+                {client.birthdate && (
+                  <p className="text-sm text-muted-foreground">
+                    Nascimento: {formatDate(client.birthdate, "dd/MM/yyyy")}
+                  </p>
+                )}
+                {client.notes && <p className="mt-2 max-w-xl text-sm">{client.notes}</p>}
+                {client.healthNotes && (
+                  <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+                    <span className="font-semibold">Saúde: </span>
+                    {client.healthNotes}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Editar
+              </Button>
+              <ConfirmDialog
+                trigger={<Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>}
+                title="Excluir cliente?"
+                description="O histórico de agendamentos será mantido, mas sem vínculo ao cliente. Esta ação não pode ser desfeita."
+                confirmText="Excluir"
+                onConfirm={deleteClient}
+              />
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Cliente</DialogTitle></DialogHeader>
+          <ClientForm client={client} onSuccess={() => { setEditOpen(false); load() }} />
+        </DialogContent>
+      </Dialog>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
