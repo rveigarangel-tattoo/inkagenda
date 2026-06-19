@@ -183,6 +183,7 @@ export default function ClientDetailPage() {
                     <TableHead className="hidden sm:table-cell">Estilo</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Pagamento</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -195,6 +196,9 @@ export default function ClientDetailPage() {
                       <TableCell className="text-right">{formatCurrency(a.value ?? 0)}</TableCell>
                       <TableCell>
                         <StatusBadge status={a.status} />
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {a.status === "completed" ? (a.paymentMethod || "Não informado") : "—"}
                       </TableCell>
                     </TableRow>
                   ))}

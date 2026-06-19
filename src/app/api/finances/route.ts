@@ -4,6 +4,15 @@ import { startOfMonth, endOfMonth, subDays, format } from "date-fns"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+function normalizePaymentMethod(m: string | null | undefined): string {
+  if (!m) return "Não informado"
+  const l = m.toLowerCase()
+  if (l.includes("pix")) return "PIX"
+  if (l.includes("dinheiro")) return "Dinheiro"
+  if (l.includes("cart")) return "Cartão"
+  return m
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -35,10 +44,23 @@ export async function GET() {
     })
   }
 
+  // Payment method breakdown for current month income
+  const rawByMethod: Record<string, number> = {}
+  for (const tx of monthTx.filter((t) => t.type === "income")) {
+    const method = normalizePaymentMethod(tx.paymentMethod)
+    rawByMethod[method] = (rawByMethod[method] || 0) + tx.amount
+  }
+  const STANDARD_METHODS = ["PIX", "Dinheiro", "Cartão"]
+  const paymentBreakdown = [
+    ...STANDARD_METHODS.map((m) => ({ method: m, amount: rawByMethod[m] || 0 })),
+    ...(rawByMethod["Não informado"] ? [{ method: "Não informado", amount: rawByMethod["Não informado"] }] : []),
+  ]
+
   return NextResponse.json({
     summary: { income, expense, balance: income - expense },
     cashflow,
     transactions,
+    paymentBreakdown,
   })
 }
 

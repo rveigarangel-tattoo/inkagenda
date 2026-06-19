@@ -61,5 +61,5 @@ export function getInitials(name: string): string {
     .join("")
 }
 
-export const PAYMENT_METHODS = ["Dinheiro", "PIX", "Cartão de Crédito", "Cartão de Débito"]
+export const PAYMENT_METHODS = ["PIX", "Dinheiro", "Cartão"]
 export const TATTOO_STYLES = ["Realismo", "Blackwork", "Aquarela", "Old School", "Fineline", "Geométrico", "Pontilhismo", "Tribal"]

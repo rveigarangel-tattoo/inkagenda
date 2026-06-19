@@ -63,6 +63,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await prisma.transaction.deleteMany({ where: { appointmentId: appt.id } })
   }
 
+  // Already completed + paymentMethod changed → sync transaction
+  if (existing.status === "completed" && appt.status === "completed" && body.paymentMethod !== undefined) {
+    await prisma.transaction.updateMany({
+      where: { appointmentId: params.id },
+      data: { paymentMethod: appt.paymentMethod },
+    })
+  }
+
   return NextResponse.json(appt)
 }
 

@@ -83,6 +83,40 @@ export default function FinancesPage() {
         </div>
       )}
 
+      {/* Payment method breakdown */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Receita por Forma de Pagamento</CardTitle>
+          <p className="text-sm text-muted-foreground">Receitas do mês atual</p>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(data?.paymentBreakdown ?? []).map((item: { method: string; amount: number }) => {
+                const pct = summary.income > 0 ? Math.round((item.amount / summary.income) * 100) : 0
+                return (
+                  <div key={item.method} className="rounded-xl border p-4">
+                    <p className="text-xs font-medium text-muted-foreground truncate">{item.method}</p>
+                    <p className="mt-1.5 text-lg font-bold tabular-nums">{formatCurrency(item.amount)}</p>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{pct}% do total</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Fluxo de Caixa (30 dias)</CardTitle>
