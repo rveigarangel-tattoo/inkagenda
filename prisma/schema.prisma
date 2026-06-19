@@ -168,9 +168,11 @@ model Settlement {
   cashAmount    Float            @default(0)
   cardAmount    Float            @default(0)
   otherAmount   Float            @default(0)
-  status        String           @default("closed")
-  notes         String?
-  paidAt        DateTime?
+  status           String           @default("closed")
+  notes            String?
+  adjustmentAmount Float            @default(0)
+  adjustmentNote   String?
+  paidAt           DateTime?
   createdAt     DateTime         @default(now())
   studio        Studio           @relation(fields: [studioId], references: [id])
   artist        User             @relation("SettlementArtist", fields: [artistId], references: [id])

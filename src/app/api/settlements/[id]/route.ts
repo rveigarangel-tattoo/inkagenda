@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const body = await req.json()
-  const { status, notes } = body
+  const { status, notes, commissionPct, adjustmentAmount, adjustmentNote } = body
 
   const data: any = {}
 
@@ -46,6 +46,37 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   if (notes !== undefined) data.notes = notes ?? null
+
+  // Financial edits blocked on paid settlements
+  if (existing.status !== "paid") {
+    if (adjustmentAmount !== undefined) data.adjustmentAmount = adjustmentAmount ?? 0
+    if (adjustmentNote !== undefined) data.adjustmentNote = adjustmentNote ?? null
+
+    if (commissionPct !== undefined) {
+      const items = await prisma.settlementItem.findMany({ where: { settlementId: params.id } })
+      const totalGross = items.reduce((s, i) => s + i.value, 0)
+      const newArtistAmount = totalGross * (commissionPct / 100)
+      const newStudioAmount = totalGross - newArtistAmount
+      data.commissionPct = commissionPct
+      data.artistAmount = newArtistAmount
+      data.studioAmount = newStudioAmount
+
+      // Recalculate each item's split
+      if (items.length > 0) {
+        await prisma.$transaction(
+          items.map((item) =>
+            prisma.settlementItem.update({
+              where: { id: item.id },
+              data: {
+                artistAmount: item.value * (commissionPct / 100),
+                studioAmount: item.value * (1 - commissionPct / 100),
+              },
+            })
+          )
+        )
+      }
+    }
+  }
 
   const settlement = await prisma.settlement.update({
     where: { id: params.id },

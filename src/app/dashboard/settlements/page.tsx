@@ -207,7 +207,10 @@ export default function SettlementsPage() {
 
                 <div className="hidden sm:block shrink-0 text-right">
                   <p className="text-sm font-semibold">{formatCurrency(s.totalGross)}</p>
-                  <p className="text-xs text-primary">{formatCurrency(s.artistAmount)} p/ tatuador</p>
+                  <p className="text-xs text-primary">
+                    {formatCurrency(s.artistAmount + (s.adjustmentAmount ?? 0))} p/ tatuador
+                    {s.adjustmentAmount && s.adjustmentAmount !== 0 ? " ✱" : ""}
+                  </p>
                 </div>
 
                 <StatusChip status={s.status} />

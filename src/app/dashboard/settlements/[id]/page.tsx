@@ -9,6 +9,9 @@ import {
   Clock,
   Trash2,
   RotateCcw,
+  Pencil,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -17,6 +20,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
 
 const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
@@ -40,14 +46,8 @@ const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.React
 function StatusChip({ status }: { status: string }) {
   const cfg = STATUS_CFG[status] ?? STATUS_CFG.closed
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
-        cfg.cls
-      )}
-    >
-      {cfg.icon}
-      {cfg.label}
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium", cfg.cls)}>
+      {cfg.icon}{cfg.label}
     </span>
   )
 }
@@ -64,10 +64,7 @@ function PaymentBar({ label, amount, total }: { label: string; amount: number; t
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -82,6 +79,152 @@ function normalizeMethod(m: string | null | undefined): string {
   return m
 }
 
+// ── Edit Dialog ──────────────────────────────────────────────────────────────
+function EditDialog({
+  settlement,
+  open,
+  onClose,
+  onSaved,
+}: {
+  settlement: any
+  open: boolean
+  onClose: () => void
+  onSaved: (updated: any) => void
+}) {
+  const [commission, setCommission] = useState(settlement.commissionPct)
+  const [adjustment, setAdjustment] = useState<number>(settlement.adjustmentAmount ?? 0)
+  const [adjNote, setAdjNote]       = useState(settlement.adjustmentNote ?? "")
+  const [saving, setSaving]         = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setCommission(settlement.commissionPct)
+      setAdjustment(settlement.adjustmentAmount ?? 0)
+      setAdjNote(settlement.adjustmentNote ?? "")
+    }
+  }, [open, settlement])
+
+  const previewBase  = settlement.totalGross * (commission / 100)
+  const previewFinal = previewBase + adjustment
+
+  async function save() {
+    setSaving(true)
+    try {
+      const r = await fetch(`/api/settlements/${settlement.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commissionPct: commission,
+          adjustmentAmount: adjustment,
+          adjustmentNote: adjNote || null,
+        }),
+      })
+      if (!r.ok) { const d = await r.json(); toast.error(d.error || "Erro ao salvar"); return }
+      const updated = await r.json()
+      toast.success("Acerto atualizado!")
+      onSaved(updated)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar Acerto — {settlement.artist?.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-1">
+          {/* Commission */}
+          <div className="space-y-1.5">
+            <Label>Comissão do tatuador (%)</Label>
+            <Input
+              type="number" min="0" max="100" step="1"
+              value={commission}
+              onChange={(e) => setCommission(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Altera a divisão base de todos os serviços deste acerto.
+            </p>
+          </div>
+
+          {/* Adjustment */}
+          <div className="space-y-1.5">
+            <Label>Ajuste manual (R$)</Label>
+            <Input
+              type="number" step="0.01"
+              placeholder="0.00"
+              value={adjustment === 0 ? "" : adjustment}
+              onChange={(e) => setAdjustment(e.target.value === "" ? 0 : Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use negativo para deduções (adiantamento, material, desconto).
+              Use positivo para acréscimos (bônus, extra).
+            </p>
+          </div>
+
+          {/* Adjustment note — shown when there's an adjustment */}
+          {adjustment !== 0 && (
+            <div className="space-y-1.5">
+              <Label>Motivo do ajuste</Label>
+              <Input
+                value={adjNote}
+                onChange={(e) => setAdjNote(e.target.value)}
+                placeholder="Ex: Adiantamento de R$200 em 15/06"
+              />
+            </div>
+          )}
+
+          {/* Live preview */}
+          <div className="rounded-xl border bg-muted/20 p-4 space-y-2 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+              Prévia do acerto
+            </p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Bruto total</span>
+              <span className="font-medium">{formatCurrency(settlement.totalGross)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Base tatuador ({commission}%)</span>
+              <span className="font-medium">{formatCurrency(previewBase)}</span>
+            </div>
+            {adjustment !== 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  {adjustment < 0
+                    ? <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                    : <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                  }
+                  Ajuste{adjNote ? ` · ${adjNote}` : ""}
+                </span>
+                <span className={cn("font-medium", adjustment < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400")}>
+                  {adjustment > 0 ? "+" : ""}{formatCurrency(adjustment)}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-2 font-semibold">
+              <span>A pagar ao tatuador</span>
+              <span className="text-primary">{formatCurrency(previewFinal)}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={save} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function SettlementDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -90,6 +233,7 @@ export default function SettlementDetailPage() {
   const [notes, setNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
   const [acting, setActing] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const notesRef = useRef<string>("")
 
   const load = useCallback(async () => {
@@ -116,11 +260,7 @@ export default function SettlementDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      if (!r.ok) {
-        const d = await r.json()
-        toast.error(d.error || "Erro ao atualizar acerto")
-        return
-      }
+      if (!r.ok) { const d = await r.json(); toast.error(d.error || "Erro ao atualizar acerto"); return }
       const updated = await r.json()
       setSettlement(updated)
       setNotes(updated.notes ?? "")
@@ -130,15 +270,8 @@ export default function SettlementDetailPage() {
     }
   }
 
-  async function markPaid() {
-    await patch({ status: "paid" })
-    toast.success("Acerto marcado como pago e travado!")
-  }
-
-  async function reopen() {
-    await patch({ status: "closed" })
-    toast.success("Acerto reaberto — agora aguarda pagamento novamente.")
-  }
+  async function markPaid() { await patch({ status: "paid" }); toast.success("Acerto marcado como pago e travado!") }
+  async function reopen()   { await patch({ status: "closed" }); toast.success("Acerto reaberto.") }
 
   async function saveNotes() {
     setSavingNotes(true)
@@ -160,11 +293,7 @@ export default function SettlementDetailPage() {
     setActing(true)
     try {
       const r = await fetch(`/api/settlements/${id}`, { method: "DELETE" })
-      if (!r.ok) {
-        const d = await r.json()
-        toast.error(d.error || "Erro ao excluir acerto")
-        return
-      }
+      if (!r.ok) { const d = await r.json(); toast.error(d.error || "Erro ao excluir acerto"); return }
       toast.success("Acerto excluído")
       router.push("/dashboard/settlements")
     } finally {
@@ -194,13 +323,34 @@ export default function SettlementDetailPage() {
     )
   }
 
-  const { artist, items, status, periodStart, periodEnd, totalGross, artistAmount, studioAmount,
-          commissionPct, pixAmount, cashAmount, cardAmount, otherAmount, paidAt } = settlement
+  const {
+    artist, items, status, periodStart, periodEnd,
+    totalGross, artistAmount, studioAmount, commissionPct,
+    pixAmount, cashAmount, cardAmount, otherAmount,
+    adjustmentAmount, adjustmentNote, paidAt,
+  } = settlement
 
+  const adj = adjustmentAmount ?? 0
+  const finalArtistAmount = artistAmount + adj
   const notesChanged = notes !== notesRef.current
 
   return (
     <div className="space-y-6 p-4 md:p-6 pb-24 md:pb-6">
+
+      {/* Edit dialog */}
+      {settlement && (
+        <EditDialog
+          settlement={settlement}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => {
+            setSettlement(updated)
+            setNotes(updated.notes ?? "")
+            notesRef.current = updated.notes ?? ""
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-3">
@@ -223,6 +373,10 @@ export default function SettlementDetailPage() {
 
           {status === "closed" && (
             <>
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} disabled={acting}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Editar
+              </Button>
               <ConfirmDialog
                 trigger={
                   <Button size="sm" disabled={acting} className="border-green-600/40 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400" variant="outline">
@@ -231,7 +385,7 @@ export default function SettlementDetailPage() {
                   </Button>
                 }
                 title="Confirmar pagamento?"
-                description={`O acerto de ${artist.name} (${formatCurrency(artistAmount)}) será travado como histórico permanente. Esta ação só pode ser revertida com "Reabrir acerto".`}
+                description={`O acerto de ${artist.name} (${formatCurrency(finalArtistAmount)}) será travado como histórico permanente. Esta ação só pode ser revertida com "Reabrir acerto".`}
                 confirmText="Confirmar pagamento"
                 onConfirm={markPaid}
               />
@@ -259,7 +413,7 @@ export default function SettlementDetailPage() {
                 </Button>
               }
               title="Reabrir acerto pago?"
-              description="O acerto voltará para 'Aguardando pagamento'. O histórico de itens permanece intacto."
+              description="O acerto voltará para 'Aguardando pagamento' e poderá ser editado novamente."
               confirmText="Reabrir"
               onConfirm={reopen}
             />
@@ -284,8 +438,8 @@ export default function SettlementDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Tatuador ({commissionPct}%)</p>
-            <p className="mt-0.5 text-lg font-bold text-primary">{formatCurrency(artistAmount)}</p>
+            <p className="text-xs text-muted-foreground">Base tatuador ({commissionPct}%)</p>
+            <p className="mt-0.5 text-lg font-bold">{formatCurrency(artistAmount)}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">{artist.name}</p>
           </CardContent>
         </Card>
@@ -298,6 +452,37 @@ export default function SettlementDetailPage() {
         </Card>
       </div>
 
+      {/* Adjustment + final amount */}
+      <div className={cn(
+        "rounded-xl border p-4 space-y-2",
+        adj !== 0 ? "border-primary/20 bg-primary/5" : "bg-card"
+      )}>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Base tatuador ({commissionPct}%)</span>
+          <span className="font-medium">{formatCurrency(artistAmount)}</span>
+        </div>
+
+        {adj !== 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              {adj < 0
+                ? <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                : <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+              }
+              Ajuste{adjustmentNote ? ` · ${adjustmentNote}` : ""}
+            </span>
+            <span className={cn("font-medium", adj < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400")}>
+              {adj > 0 ? "+" : ""}{formatCurrency(adj)}
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-t pt-2">
+          <span className="font-semibold">A pagar ao tatuador</span>
+          <span className="text-lg font-bold text-primary">{formatCurrency(finalArtistAmount)}</span>
+        </div>
+      </div>
+
       {/* Payment breakdown */}
       <Card>
         <CardHeader className="pb-3">
@@ -306,9 +491,9 @@ export default function SettlementDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <PaymentBar label="PIX" amount={pixAmount} total={totalGross} />
-          <PaymentBar label="Dinheiro" amount={cashAmount} total={totalGross} />
-          <PaymentBar label="Cartão" amount={cardAmount} total={totalGross} />
+          <PaymentBar label="PIX"       amount={pixAmount}  total={totalGross} />
+          <PaymentBar label="Dinheiro"  amount={cashAmount} total={totalGross} />
+          <PaymentBar label="Cartão"    amount={cardAmount} total={totalGross} />
           {otherAmount > 0 && (
             <PaymentBar label="Não informado" amount={otherAmount} total={totalGross} />
           )}
@@ -343,10 +528,7 @@ export default function SettlementDetailPage() {
                 </thead>
                 <tbody>
                   {items.map((item: any, i: number) => (
-                    <tr
-                      key={item.id}
-                      className={cn("border-b last:border-0", i % 2 === 0 ? "bg-transparent" : "bg-muted/20")}
-                    >
+                    <tr key={item.id} className={cn("border-b last:border-0", i % 2 === 0 ? "bg-transparent" : "bg-muted/20")}>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                         {formatDate(item.serviceDate, "dd/MM/yy")}
                       </td>
@@ -373,12 +555,8 @@ export default function SettlementDetailPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-muted/30 font-semibold">
-                    <td colSpan={3} className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground hidden sm:table-cell">
-                      Total
-                    </td>
-                    <td colSpan={3} className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground sm:hidden">
-                      Total
-                    </td>
+                    <td colSpan={3} className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground hidden sm:table-cell">Total</td>
+                    <td colSpan={3} className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground sm:hidden">Total</td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">{formatCurrency(totalGross)}</td>
                     <td className="hidden md:table-cell" />
                     <td className="px-4 py-3 text-right hidden md:table-cell text-primary whitespace-nowrap">
@@ -412,11 +590,7 @@ export default function SettlementDetailPage() {
           />
           {notesChanged && (
             <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setNotes(notesRef.current)}
-              >
+              <Button size="sm" variant="outline" onClick={() => setNotes(notesRef.current)}>
                 Cancelar
               </Button>
               <Button size="sm" onClick={saveNotes} disabled={savingNotes}>
