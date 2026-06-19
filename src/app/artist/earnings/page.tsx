@@ -84,7 +84,7 @@ function PeriodPicker({ value, onChange }: { value: DateRange; onChange: (r: Dat
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 w-72 rounded-xl border bg-card p-4 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1.5 w-[min(288px,calc(100vw-2rem))] rounded-xl border bg-card p-4 shadow-xl">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Período</p>
           <div className="mb-3 flex flex-col gap-1.5">
             {PRESETS.map((p) => {
@@ -189,37 +189,39 @@ export default function ArtistEarningsPage() {
               Nenhuma sessão concluída no período.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-right">Minha Parte</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {completed
-                  .sort((a, b) => +new Date(b.date) - +new Date(a.date))
-                  .map((a) => (
-                    <TableRow key={a.id}>
-                      <TableCell>{formatDate(a.date, "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{a.client?.name}</TableCell>
-                      <TableCell>{a.service}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(a.value ?? 0)}</TableCell>
-                      <TableCell className="text-right text-primary">
-                        {formatCurrency((a.value ?? 0) * (commissionPct / 100))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                <TableRow>
-                  <TableCell colSpan={3} className="font-semibold">Total</TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(totals.revenue)}</TableCell>
-                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(totals.share)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="hidden sm:table-cell">Serviço</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Minha Parte</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completed
+                    .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+                    .map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell>{formatDate(a.date, "dd/MM/yyyy")}</TableCell>
+                        <TableCell>{a.client?.name}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{a.service}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(a.value ?? 0)}</TableCell>
+                        <TableCell className="text-right text-primary">
+                          {formatCurrency((a.value ?? 0) * (commissionPct / 100))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  <TableRow>
+                    <TableCell colSpan={3} className="font-semibold">Total</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(totals.revenue)}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{formatCurrency(totals.share)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

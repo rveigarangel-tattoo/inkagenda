@@ -119,7 +119,7 @@ function DateRangePicker({ value, onChange }: { value: DateRange; onChange: (r: 
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="absolute right-0 top-full z-50 mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-card shadow-2xl max-w-[calc(100vw-1rem)]">
           {/* Preset list */}
           <div className="flex flex-row sm:flex-col flex-wrap gap-0.5 border-b sm:border-b-0 sm:border-r border-border p-2">
             {PRESETS.map((preset) => (
@@ -139,7 +139,7 @@ function DateRangePicker({ value, onChange }: { value: DateRange; onChange: (r: 
           </div>
 
           {/* Custom range */}
-          <div className="flex flex-col gap-3 p-4 min-w-[260px]">
+          <div className="flex flex-col gap-3 p-4 min-w-0 sm:min-w-[260px]">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Período personalizado
             </p>
@@ -383,35 +383,37 @@ export default function DashboardPage() {
             {data.ranking.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem dados para o período.</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tatuador</TableHead>
-                    <TableHead className="text-right">Agendamentos</TableHead>
-                    <TableHead className="text-right">Receita</TableHead>
-                    <TableHead className="text-right">Comissão</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.ranking.map((r: any) => (
-                    <TableRow
-                      key={r.id}
-                      className={cn("cursor-pointer transition-colors", r.id === artistId ? "bg-primary/5" : "hover:bg-accent/50")}
-                      onClick={() => setArtistId(r.id === artistId ? "" : r.id)}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <AvatarInitials name={r.name} color={r.avatarColor} size={32} />
-                          <span className="font-medium">{r.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{r.appointments}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(r.revenue)}</TableCell>
-                      <TableCell className="text-right text-primary">{formatCurrency(r.commission)}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tatuador</TableHead>
+                      <TableHead className="text-right">Sessões</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="hidden sm:table-cell text-right">Comissão</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {data.ranking.map((r: any) => (
+                      <TableRow
+                        key={r.id}
+                        className={cn("cursor-pointer transition-colors", r.id === artistId ? "bg-primary/5" : "hover:bg-accent/50")}
+                        onClick={() => setArtistId(r.id === artistId ? "" : r.id)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <AvatarInitials name={r.name} color={r.avatarColor} size={32} />
+                            <span className="truncate font-medium max-w-[100px] sm:max-w-none">{r.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{r.appointments}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(r.revenue)}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-right text-primary">{formatCurrency(r.commission)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

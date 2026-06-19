@@ -107,7 +107,7 @@ export default function ArtistSettingsPage() {
                     key={c}
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, avatarColor: c }))}
-                    className="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+                    className="h-11 w-11 rounded-full border-2 transition-transform hover:scale-110 active:scale-95"
                     style={{
                       backgroundColor: c,
                       borderColor: form.avatarColor === c ? "white" : "transparent",

@@ -112,7 +112,7 @@ export default function ArtistClientDetailPage() {
                 <Pencil className="mr-2 h-4 w-4" /> Editar
               </Button>
               <ConfirmDialog
-                trigger={<Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>}
+                trigger={<Button variant="destructive" size="icon" className="min-h-[44px] min-w-[44px]"><Trash2 className="h-4 w-4" /></Button>}
                 title="Excluir cliente?"
                 description="O histórico de agendamentos será mantido, mas sem vínculo ao cliente. Esta ação não pode ser desfeita."
                 confirmText="Excluir"
@@ -157,28 +157,30 @@ export default function ArtistClientDetailPage() {
           {appointments.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">Nenhum agendamento registrado.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Estilo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointments.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{formatDate(a.date, "dd/MM/yyyy HH:mm")}</TableCell>
-                    <TableCell>{a.service ?? "—"}</TableCell>
-                    <TableCell>{a.style ?? "—"}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(a.value ?? 0)}</TableCell>
-                    <TableCell><StatusBadge status={a.status} /></TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead className="hidden sm:table-cell">Estilo</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {appointments.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="whitespace-nowrap">{formatDate(a.date, "dd/MM HH:mm")}</TableCell>
+                      <TableCell>{a.service ?? "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{a.style ?? "—"}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(a.value ?? 0)}</TableCell>
+                      <TableCell><StatusBadge status={a.status} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

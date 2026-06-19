@@ -43,10 +43,10 @@ export default function ArtistDashboardPage() {
         onClick={() => router.push("/artist/agenda")}
       >
         <div className="p-5">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">Hoje</p>
-              <p className="text-2xl font-bold capitalize">
+              <p className="text-2xl font-bold capitalize break-words">
                 {format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}
               </p>
             </div>

@@ -48,8 +48,11 @@ export function MobileNav({ role }: { role: string }) {
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Menu</p>
-              <button onClick={() => setMoreOpen(false)} className="text-muted-foreground">
-                <X className="h-4 w-4" />
+              <button
+                onClick={() => setMoreOpen(false)}
+                className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">

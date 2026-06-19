@@ -519,7 +519,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
           </div>
 
           {/* ── Pagamento + Status ── */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Pagamento</Label>
               <Select value={watch("paymentMethod")} onValueChange={(v) => setValue("paymentMethod", v)}>
@@ -553,7 +553,7 @@ export function AppointmentSheet({ open, onOpenChange, appointment, defaultDate,
             </Button>
             {appointment && (
               <ConfirmDialog
-                trigger={<Button type="button" variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>}
+                trigger={<Button type="button" variant="destructive" size="icon" className="min-h-[44px] min-w-[44px]"><Trash2 className="h-4 w-4" /></Button>}
                 title="Excluir agendamento?"
                 description="Esta ação não pode ser desfeita."
                 confirmText="Excluir"
