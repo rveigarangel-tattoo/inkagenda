@@ -30,6 +30,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       commissionPct: body.commissionPct ?? artist.commissionPct,
       avatarColor: body.avatarColor ?? artist.avatarColor,
       isActive: body.isActive ?? artist.isActive,
+      settlementFrequency: body.settlementFrequency ?? artist.settlementFrequency,
+      settlementDays: body.settlementDays ?? artist.settlementDays,
+      settlementCycleStart: body.settlementCycleStart
+        ? new Date(body.settlementCycleStart)
+        : null,
     },
   })
   const { password: _, ...safe } = updated

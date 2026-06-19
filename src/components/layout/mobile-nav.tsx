@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Users, Wallet, LayoutDashboard, CalendarDays, UserCircle, TrendingUp, MoreHorizontal, Settings, UserCheck, X } from "lucide-react"
+import { Calendar, Users, Wallet, LayoutDashboard, CalendarDays, UserCircle, TrendingUp, MoreHorizontal, Settings, UserCheck, X, ArrowLeftRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -14,6 +14,7 @@ const adminNav = [
 
 const adminMore = [
   { href: "/dashboard/team", label: "Tatuadores", icon: UserCheck },
+  { href: "/dashboard/settlements", label: "Acertos", icon: ArrowLeftRight },
   { href: "/dashboard/settings", label: "Configurações", icon: Settings },
 ]
 

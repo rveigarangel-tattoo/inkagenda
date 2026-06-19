@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { addDays, format, parseISO, startOfMonth, startOfWeek } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, ChevronDown, DollarSign, CalendarCheck, CheckCircle, Receipt, ArrowRight } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronDown, DollarSign, CalendarCheck, CheckCircle, Receipt, ArrowRight, ArrowLeftRight } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -191,6 +191,7 @@ export default function DashboardPage() {
     to: format(new Date(), "yyyy-MM-dd"),
   }))
   const [artistId, setArtistId] = useState("")
+  const [settlements, setSettlements] = useState<any[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -201,6 +202,13 @@ export default function DashboardPage() {
       .then(setData)
       .catch(() => {})
   }, [range, artistId])
+
+  useEffect(() => {
+    fetch("/api/settlements")
+      .then((r) => r.json())
+      .then((d) => setSettlements(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [])
 
   if (!data) {
     return (
@@ -252,6 +260,18 @@ export default function DashboardPage() {
 
   const activeLabel = getActiveLabel(range)
   const todayCount = data.todayAppointments.filter((a: any) => a.status !== "blocked").length
+
+  const pendingSettlements = settlements.filter((s) => s.status === "closed")
+  const pendingArtistTotal = pendingSettlements.reduce((sum: number, s: any) => sum + s.artistAmount, 0)
+
+  const now = new Date()
+  const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const paidThisMonth = settlements
+    .filter((s) => s.status === "paid" && s.paidAt && new Date(s.paidAt) >= startOfCurrentMonth)
+    .reduce((sum: number, s: any) => sum + s.artistAmount, 0)
+  const studioThisMonth = settlements
+    .filter((s) => s.status === "paid" && s.paidAt && new Date(s.paidAt) >= startOfCurrentMonth)
+    .reduce((sum: number, s: any) => sum + s.studioAmount, 0)
 
   return (
     <div className="p-4 pb-24 md:p-6 md:pb-6 space-y-6">
@@ -315,6 +335,66 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* ══ ACERTOS ══ */}
+      {data.isAdmin && settlements.length > 0 ? (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Acertos de Repasse</h2>
+            <Link href="/dashboard/settlements" className="flex items-center gap-1 text-xs text-primary hover:underline">
+              Ver todos <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Link href="/dashboard/settlements" className="block">
+              <div className={cn(
+                "rounded-xl border bg-card p-4 transition-colors hover:bg-accent/30",
+                pendingSettlements.length > 0 && "border-amber-500/30 bg-amber-500/5"
+              )}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <ArrowLeftRight className={cn("h-4 w-4", pendingSettlements.length > 0 ? "text-amber-500" : "text-muted-foreground")} />
+                  <span className="text-xs text-muted-foreground">Pendente p/ tatuadores</span>
+                </div>
+                <p className={cn("text-lg font-bold", pendingSettlements.length > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
+                  {formatCurrency(pendingArtistTotal)}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {pendingSettlements.length} acerto{pendingSettlements.length !== 1 ? "s" : ""} aguardando
+                </p>
+              </div>
+            </Link>
+            <div className="rounded-xl border bg-card p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-xs text-muted-foreground">Já acertado esse mês</span>
+              </div>
+              <p className="text-lg font-bold">{formatCurrency(paidThisMonth)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">repasses pagos em {format(now, "MMMM", { locale: ptBR })}</p>
+            </div>
+            <div className="rounded-xl border bg-card p-4 col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Ficou p/ o estúdio</span>
+              </div>
+              <p className="text-lg font-bold text-primary">{formatCurrency(studioThisMonth)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">comissões em {format(now, "MMMM", { locale: ptBR })}</p>
+            </div>
+          </div>
+        </section>
+      ) : data.isAdmin ? (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Acertos de Repasse</h2>
+            <Link href="/dashboard/settlements" className="flex items-center gap-1 text-xs text-primary hover:underline">
+              Gerenciar <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <Link href="/dashboard/settlements" className="block rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground hover:bg-accent/30 transition-colors">
+            <ArrowLeftRight className="mx-auto mb-2 h-6 w-6 opacity-40" />
+            Nenhum acerto registrado. Clique para gerenciar repasses.
+          </Link>
+        </section>
+      ) : null}
 
       {/* ══ ANÁLISES ══ */}
       <section className="space-y-4">

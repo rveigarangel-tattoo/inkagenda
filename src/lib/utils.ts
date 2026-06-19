@@ -63,3 +63,23 @@ export function getInitials(name: string): string {
 
 export const PAYMENT_METHODS = ["PIX", "Dinheiro", "Cartão"]
 export const TATTOO_STYLES = ["Realismo", "Blackwork", "Aquarela", "Old School", "Fineline", "Geométrico", "Pontilhismo", "Tribal"]
+
+export const SETTLEMENT_FREQUENCIES = [
+  { value: "daily",      label: "Diário (1 dia)" },
+  { value: "every3days", label: "A cada 3 dias" },
+  { value: "weekly",     label: "Semanal (7 dias)" },
+  { value: "biweekly",   label: "Quinzenal (15 dias)" },
+  { value: "monthly",    label: "Mensal (30 dias)" },
+  { value: "custom",     label: "Personalizado" },
+]
+
+export function getFrequencyDays(frequency: string, customDays: number): number {
+  switch (frequency) {
+    case "daily":      return 1
+    case "every3days": return 3
+    case "weekly":     return 7
+    case "biweekly":   return 15
+    case "monthly":    return 30
+    default:           return Math.max(1, customDays || 30)
+  }
+}

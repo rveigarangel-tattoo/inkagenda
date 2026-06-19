@@ -19,6 +19,7 @@ model Studio {
   appointments  Appointment[]
   transactions  Transaction[]
   invites       Invite[]
+  settlements   Settlement[]
 }
 
 model Invite {
@@ -39,25 +40,29 @@ model Invite {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  studioId      String
-  name          String
-  email         String        @unique
-  password      String
-  role          String        @default("artist")
-  isArtist      Boolean       @default(false)
-  phone         String?
-  commissionPct Float         @default(50)
-  avatarUrl     String?
-  avatarColor   String        @default("#7c3aed")
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  studio        Studio        @relation(fields: [studioId], references: [id])
-  appointments  Appointment[]
-  transactions  Transaction[]
-  accounts      Account[]
-  sessions      Session[]
-  clients       Client[]
+  id                   String       @id @default(cuid())
+  studioId             String
+  name                 String
+  email                String       @unique
+  password             String
+  role                 String       @default("artist")
+  isArtist             Boolean      @default(false)
+  phone                String?
+  commissionPct        Float        @default(50)
+  avatarUrl            String?
+  avatarColor          String       @default("#7c3aed")
+  isActive             Boolean      @default(true)
+  settlementFrequency  String       @default("monthly")
+  settlementDays       Int          @default(30)
+  settlementCycleStart DateTime?
+  createdAt            DateTime     @default(now())
+  studio               Studio       @relation(fields: [studioId], references: [id])
+  appointments         Appointment[]
+  transactions         Transaction[]
+  accounts             Account[]
+  sessions             Session[]
+  clients              Client[]
+  settlements          Settlement[] @relation("SettlementArtist")
 }
 
 model Account {
@@ -111,24 +116,25 @@ model Client {
 }
 
 model Appointment {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   studioId        String
   clientId        String?
   artistId        String?
   service         String
-  value           Float         @default(0)
-  deposit         Float         @default(0)
+  value           Float            @default(0)
+  deposit         Float            @default(0)
   date            DateTime
-  durationMinutes Int           @default(60)
-  status          String        @default("pending")
+  durationMinutes Int              @default(60)
+  status          String           @default("pending")
   notes           String?
   style           String?
   paymentMethod   String?
-  createdAt       DateTime      @default(now())
-  studio          Studio        @relation(fields: [studioId], references: [id])
-  client          Client?       @relation(fields: [clientId], references: [id])
-  artist          User?         @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  studio          Studio           @relation(fields: [studioId], references: [id])
+  client          Client?          @relation(fields: [clientId], references: [id])
+  artist          User?            @relation(fields: [artistId], references: [id], onDelete: SetNull)
   transactions    Transaction[]
+  settlementItems SettlementItem[]
 }
 
 model Transaction {
@@ -146,4 +152,42 @@ model Transaction {
   studio        Studio       @relation(fields: [studioId], references: [id])
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
   artist        User?        @relation(fields: [artistId], references: [id], onDelete: SetNull)
+}
+
+model Settlement {
+  id            String           @id @default(cuid())
+  studioId      String
+  artistId      String
+  periodStart   DateTime
+  periodEnd     DateTime
+  totalGross    Float            @default(0)
+  artistAmount  Float            @default(0)
+  studioAmount  Float            @default(0)
+  commissionPct Float            @default(50)
+  pixAmount     Float            @default(0)
+  cashAmount    Float            @default(0)
+  cardAmount    Float            @default(0)
+  otherAmount   Float            @default(0)
+  status        String           @default("closed")
+  notes         String?
+  paidAt        DateTime?
+  createdAt     DateTime         @default(now())
+  studio        Studio           @relation(fields: [studioId], references: [id])
+  artist        User             @relation("SettlementArtist", fields: [artistId], references: [id])
+  items         SettlementItem[]
+}
+
+model SettlementItem {
+  id            String       @id @default(cuid())
+  settlementId  String
+  appointmentId String?
+  clientName    String?
+  service       String
+  serviceDate   DateTime
+  value         Float
+  paymentMethod String?
+  artistAmount  Float
+  studioAmount  Float
+  settlement    Settlement   @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 }

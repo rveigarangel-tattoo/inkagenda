@@ -18,7 +18,7 @@ import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { cn } from "@/lib/utils"
+import { cn, SETTLEMENT_FREQUENCIES } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -44,6 +44,9 @@ const editSchema = z.object({
   commissionPct: z.coerce.number().min(0).max(100),
   avatarColor: z.string().min(1),
   isActive: z.boolean(),
+  settlementFrequency: z.string().default("monthly"),
+  settlementDays: z.coerce.number().min(1).max(365).default(30),
+  settlementCycleStart: z.string().optional(),
 })
 type EditValues = z.infer<typeof editSchema>
 
@@ -210,6 +213,11 @@ function EditArtistDialog({
       commissionPct: artist.commissionPct,
       avatarColor: artist.avatarColor,
       isActive: artist.isActive,
+      settlementFrequency: artist.settlementFrequency ?? "monthly",
+      settlementDays: artist.settlementDays ?? 30,
+      settlementCycleStart: artist.settlementCycleStart
+        ? new Date(artist.settlementCycleStart).toISOString().split("T")[0]
+        : "",
     },
   })
 
@@ -221,11 +229,17 @@ function EditArtistDialog({
         commissionPct: artist.commissionPct,
         avatarColor: artist.avatarColor,
         isActive: artist.isActive,
+        settlementFrequency: artist.settlementFrequency ?? "monthly",
+        settlementDays: artist.settlementDays ?? 30,
+        settlementCycleStart: artist.settlementCycleStart
+          ? new Date(artist.settlementCycleStart).toISOString().split("T")[0]
+          : "",
       })
     }
   }, [open, artist, reset])
 
   const isActive = watch("isActive")
+  const settlementFrequency = watch("settlementFrequency")
 
   async function onSubmit(values: EditValues) {
     const res = await fetch(`/api/team/${artist.id}`, {
@@ -270,6 +284,37 @@ function EditArtistDialog({
             <div className="space-y-2">
               <Label>Cor do Avatar</Label>
               <Input type="color" className="h-10 p-1" {...register("avatarColor")} />
+            </div>
+          </div>
+
+          {/* Settlement frequency */}
+          <div className="space-y-3 rounded-lg border p-3">
+            <p className="text-sm font-medium">Frequência de Acerto</p>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Frequência</Label>
+              <Select
+                value={settlementFrequency}
+                onValueChange={(v) => setValue("settlementFrequency", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SETTLEMENT_FREQUENCIES.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {settlementFrequency === "custom" && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Dias por ciclo</Label>
+                <Input type="number" min="1" max="365" {...register("settlementDays")} />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Início do primeiro ciclo (opcional)</Label>
+              <Input type="date" {...register("settlementCycleStart")} />
             </div>
           </div>
 

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
   LayoutDashboard, Calendar, Users, Wallet, Palette, Settings,
-  CalendarDays, UserCircle, TrendingUp, ChevronLeft, Syringe,
+  CalendarDays, UserCircle, TrendingUp, ChevronLeft, Syringe, ArrowLeftRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,7 @@ const adminNav = [
   { href: "/dashboard/clients", label: "Clientes", icon: Users },
   { href: "/dashboard/finances", label: "Financeiro", icon: Wallet },
   { href: "/dashboard/team", label: "Tatuadores", icon: Palette },
+  { href: "/dashboard/settlements", label: "Acertos", icon: ArrowLeftRight },
   { href: "/dashboard/settings", label: "Configurações", icon: Settings },
 ]
 
