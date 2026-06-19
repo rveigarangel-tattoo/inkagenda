@@ -1,14 +1,18 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ChevronRight, AlertCircle, CheckCircle2, Clock } from "lucide-react"
+import { ChevronRight, AlertCircle, CheckCircle2, Clock, Settings2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { formatCurrency, formatDate, cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatCurrency, formatDate, cn, SETTLEMENT_FREQUENCIES } from "@/lib/utils"
 
 const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
   closed:  { label: "Aguardando pagamento", cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30", icon: <Clock className="h-3 w-3" /> },
@@ -25,12 +29,143 @@ function StatusChip({ status }: { status: string }) {
   )
 }
 
+// ── Artist config dialog ──────────────────────────────────────────────────────
+function ArtistConfigDialog({
+  preview,
+  open,
+  onClose,
+  onSaved,
+}: {
+  preview: any
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [commission, setCommission]   = useState(preview.artist.commissionPct)
+  const [frequency, setFrequency]     = useState(preview.artist.settlementFrequency ?? "monthly")
+  const [customDays, setCustomDays]   = useState(preview.artist.settlementDays ?? 30)
+  const [saving, setSaving]           = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setCommission(preview.artist.commissionPct)
+      setFrequency(preview.artist.settlementFrequency ?? "monthly")
+      setCustomDays(preview.artist.settlementDays ?? 30)
+    }
+  }, [open, preview])
+
+  async function save() {
+    setSaving(true)
+    try {
+      const r = await fetch(`/api/team/${preview.artist.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: preview.artist.name,
+          commissionPct: commission,
+          settlementFrequency: frequency,
+          settlementDays: customDays,
+          avatarColor: preview.artist.avatarColor,
+          isActive: true,
+        }),
+      })
+      if (!r.ok) { toast.error("Erro ao salvar configurações"); return }
+      toast.success("Configurações salvas! O próximo período usará os novos valores.")
+      onSaved()
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Configurar — {preview.artist.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-1">
+          <div className="space-y-1.5">
+            <Label>Comissão do tatuador (%)</Label>
+            <Input
+              type="number" min="0" max="100" step="1"
+              value={commission}
+              onChange={(e) => setCommission(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Afeta os próximos acertos. Acertos já fechados mantêm o valor original.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Frequência de acerto</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SETTLEMENT_FREQUENCIES.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {frequency === "custom" && (
+            <div className="space-y-1.5">
+              <Label>Dias por ciclo</Label>
+              <Input
+                type="number" min="1" max="365"
+                value={customDays}
+                onChange={(e) => setCustomDays(Number(e.target.value))}
+              />
+            </div>
+          )}
+
+          {/* Preview do próximo período */}
+          <div className="rounded-xl border bg-muted/20 p-3 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Período atual (prévia)
+            </p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Bruto acumulado</span>
+              <span className="font-medium">{formatCurrency(preview.totalGross)}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-muted-foreground">Tatuador ({commission}%)</span>
+              <span className="font-medium text-primary">
+                {formatCurrency(preview.totalGross * (commission / 100))}
+              </span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-muted-foreground">Estúdio ({100 - commission}%)</span>
+              <span className="font-medium">
+                {formatCurrency(preview.totalGross * ((100 - commission) / 100))}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={save} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function SettlementsPage() {
   const [previews, setPreviews]         = useState<any[]>([])
   const [settlements, setSettlements]   = useState<any[]>([])
   const [loadingP, setLoadingP]         = useState(true)
   const [loadingS, setLoadingS]         = useState(true)
   const [closing, setClosing]           = useState<string | null>(null)
+  const [editingArtist, setEditingArtist] = useState<any | null>(null)
 
   const loadPreviews = useCallback(async () => {
     setLoadingP(true)
@@ -95,6 +230,16 @@ export default function SettlementsPage() {
         <p className="text-sm text-muted-foreground">Gerencie os repasses financeiros com seus tatuadores</p>
       </div>
 
+      {/* Artist config dialog */}
+      {editingArtist && (
+        <ArtistConfigDialog
+          preview={editingArtist}
+          open={!!editingArtist}
+          onClose={() => setEditingArtist(null)}
+          onSaved={() => { loadPreviews() }}
+        />
+      )}
+
       {/* ── Períodos em aberto ── */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
@@ -125,11 +270,22 @@ export default function SettlementsPage() {
                         {formatDate(p.periodStart, "dd/MM")} – {formatDate(p.scheduledEnd, "dd/MM/yyyy")}
                       </p>
                     </div>
-                    {p.isOverdue && (
-                      <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                        Vencido
-                      </span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1">
+                      {p.isOverdue && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          Vencido
+                        </span>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => setEditingArtist(p)}
+                        title="Configurar comissão e frequência"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Amounts */}
@@ -224,7 +380,7 @@ export default function SettlementsPage() {
                         </Button>
                       }
                       title="Marcar acerto como pago?"
-                      description={`O acerto de ${s.artist.name} (${formatCurrency(s.artistAmount)}) será travado como histórico permanente. Esta ação não pode ser desfeita sem reabrir manualmente.`}
+                      description={`O acerto de ${s.artist.name} (${formatCurrency(s.artistAmount + (s.adjustmentAmount ?? 0))}) será travado como histórico permanente.`}
                       confirmText="Confirmar pagamento"
                       onConfirm={() => markPaid(s.id)}
                     />

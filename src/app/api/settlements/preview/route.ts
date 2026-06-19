@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
   const artists = await prisma.user.findMany({
     where: {
       studioId,
-      isArtist: true,
       isActive: true,
+      OR: [{ role: "artist" }, { isArtist: true }],
       ...(artistIdFilter ? { id: artistIdFilter } : {}),
     },
     select: {
