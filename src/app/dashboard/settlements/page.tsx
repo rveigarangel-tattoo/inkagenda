@@ -1,7 +1,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ChevronRight, AlertCircle, CheckCircle2, Clock, Settings2 } from "lucide-react"
+import { ChevronRight, AlertCircle, CheckCircle2, Clock, Settings2, BarChart2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -225,9 +225,17 @@ export default function SettlementsPage() {
 
   return (
     <div className="space-y-8 p-4 md:p-6 pb-24 md:pb-6">
-      <div>
-        <h1 className="text-2xl font-bold">Acertos de Repasse</h1>
-        <p className="text-sm text-muted-foreground">Gerencie os repasses financeiros com seus tatuadores</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Acertos de Repasse</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os repasses financeiros com seus tatuadores</p>
+        </div>
+        <Link href="/dashboard/settlements/annual">
+          <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
+            <BarChart2 className="h-3.5 w-3.5" />
+            Visão Anual
+          </Button>
+        </Link>
       </div>
 
       {/* Artist config dialog */}
