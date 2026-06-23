@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,38 +27,66 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="InkFlow" className="mb-2 h-28 object-contain" />
-          <p className="text-sm text-muted-foreground">Gestão de estúdio de tatuagem</p>
+    <div className="flex min-h-screen bg-background">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center bg-primary/10 border-r border-border p-12">
+        <img src="/logo.svg" alt="inkagenda" className="w-48 brightness-0 invert mb-8" />
+        <p className="text-center text-muted-foreground text-sm max-w-xs leading-relaxed">
+          Gestão completa para estúdios de tatuagem — agenda, clientes, finanças e equipe num só lugar.
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex flex-1 flex-col items-center justify-center p-6">
+        {/* Mobile logo */}
+        <img src="/logo.svg" alt="inkagenda" className="mb-8 w-32 brightness-0 invert lg:hidden" />
+
+        <div className="w-full max-w-sm">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold">Bem-vindo de volta</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Entre na sua conta para continuar</p>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="admin@inkflow.com"
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="h-11"
+              />
+            </div>
+            <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
+          </form>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Demo: admin@inkflow.com / Admin@123
+          </p>
+          <p className="mt-3 text-center text-sm text-muted-foreground">
+            Novo estúdio?{" "}
+            <a href="/register" className="text-primary font-medium hover:underline">
+              Criar conta gratuita
+            </a>
+          </p>
         </div>
-        <Card>
-          <CardContent className="p-6">
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@inkflow.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Entrando..." : "Entrar"}
-              </Button>
-            </form>
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              Demo: admin@inkflow.com / Admin@123
-            </p>
-            <p className="mt-2 text-center text-sm text-muted-foreground">
-              Novo estúdio?{" "}
-              <a href="/register" className="text-primary hover:underline">
-                Criar conta gratuita
-              </a>
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

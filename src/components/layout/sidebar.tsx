@@ -40,8 +40,12 @@ export function Sidebar({ role }: { role: string }) {
       )}
     >
       {/* Logo */}
-      <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "px-4")}>
-        <img src="/logo.svg" alt="InkFlow" className={cn("shrink-0 object-contain", collapsed ? "h-8 w-8" : "h-10")} />
+      <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-2" : "px-4")}>
+        <img
+          src="/logo.svg"
+          alt="inkagenda"
+          className={cn("shrink-0 object-contain brightness-0 invert", collapsed ? "h-7 w-7" : "h-9")}
+        />
       </div>
 
       {/* Nav */}
