@@ -6,11 +6,19 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "InkFlow",
+  title: "inkagenda",
   description: "Gestão de estúdio de tatuagem",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
   appleWebApp: {
     capable: true,
-    title: "InkFlow",
+    title: "inkagenda",
     statusBarStyle: "black-translucent",
   },
 }

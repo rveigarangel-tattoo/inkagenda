@@ -28,7 +28,8 @@ export function Header() {
   const user = session?.user
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      <span className="text-lg font-bold md:hidden">InkFlow</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="inkagenda" className="h-8 object-contain md:hidden" />
       {/* Cmd+K search button — desktop only */}
       <button
         onClick={openPalette}

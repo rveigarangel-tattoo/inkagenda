@@ -41,10 +41,9 @@ export function Sidebar({ role }: { role: string }) {
     >
       {/* Logo */}
       <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "gap-2 px-4")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Syringe className="h-5 w-5" />
-        </div>
-        {!collapsed && <span className="text-lg font-bold">InkFlow</span>}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="inkagenda" className={cn("shrink-0 object-contain", collapsed ? "h-8 w-8" : "h-9")} />
+        {!collapsed && <span className="text-lg font-bold">inkagenda</span>}
       </div>
 
       {/* Nav */}

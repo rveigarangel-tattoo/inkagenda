@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; }
+  ::selection { background:#1c1c1c; color:#fff; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#f4f3f1; font-family:'DM Sans',system-ui,sans-serif; color:#1c1c1c; padding:56px 32px; box-sizing:border-box;">
+  <div style="max-width:880px; margin:0 auto;">
+
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:8px;">
+      <img src="icons/icon-512.png" alt="inkagenda" style="width:48px; height:48px; border-radius:11px; box-shadow:0 1px 3px rgba(0,0,0,.12);" />
+      <h1 style="font-size:34px; font-weight:700; letter-spacing:-.02em; margin:0;">Pacote de ícones — inkagenda</h1>
+    </div>
+    <p style="font-size:16px; line-height:1.5; color:#6b6864; margin:0 0 44px; max-width:560px;">
+      Ícones gerados a partir do seu logo, prontos para favicon, PWA e tela inicial de iOS/Android. Baixe a pasta e cole no seu projeto.
+    </p>
+
+    <!-- Favicon row -->
+    <section style="background:#fff; border:1px solid #e6e4e0; border-radius:14px; padding:28px 30px; margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9a9692; margin-bottom:6px;">Favicon · símbolo, fundo transparente</div>
+      <div style="display:flex; align-items:flex-end; gap:36px; margin-top:22px; flex-wrap:wrap;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><img src="icons/favicon-16.png" style="width:16px;height:16px;image-rendering:auto;" /><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">16</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><img src="icons/favicon-32.png" style="width:32px;height:32px;" /><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">32</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><img src="icons/favicon-48.png" style="width:48px;height:48px;" /><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">48</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><img src="icons/favicon-64.png" style="width:64px;height:64px;" /><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">64</span></div>
+      </div>
+    </section>
+
+    <!-- App icons row -->
+    <section style="background:#fff; border:1px solid #e6e4e0; border-radius:14px; padding:28px 30px; margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9a9692; margin-bottom:6px;">Tela inicial · PWA · iOS / Android</div>
+      <div style="display:flex; align-items:flex-end; gap:40px; margin-top:22px; flex-wrap:wrap;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <img src="icons/apple-touch-icon.png" style="width:80px;height:80px;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,.12);" />
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">apple-touch · 180</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <img src="icons/icon-192.png" style="width:80px;height:80px;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,.12);" />
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">icon · 192</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <img src="icons/icon-512.png" style="width:80px;height:80px;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,.12);" />
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">icon · 512</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12);"><img src="icons/icon-512-maskable.png" style="width:100%;height:100%;" /></div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a9692;">maskable · 512</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Code snippets -->
+    <section style="background:#1c1c1c; color:#e8e6e2; border-radius:14px; padding:26px 28px; margin-bottom:20px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.7; overflow-x:auto;">
+      <div style="color:#7e7b76; margin-bottom:10px;">// no &lt;head&gt; do seu app</div>
+      <div>&lt;link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" /&gt;</div>
+      <div>&lt;link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" /&gt;</div>
+      <div>&lt;link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" /&gt;</div>
+      <div>&lt;link rel="manifest" href="/site.webmanifest" /&gt;</div>
+      <div>&lt;meta name="theme-color" content="#1c1c1c" /&gt;</div>
+    </section>
+
+    <!-- File list -->
+    <section style="background:#fff; border:1px solid #e6e4e0; border-radius:14px; padding:24px 30px;">
+      <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9a9692; margin-bottom:16px;">Arquivos no pacote</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px 28px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#46433f;">
+        <div>icons/favicon-16.png</div>
+        <div>icons/favicon-32.png</div>
+        <div>icons/favicon-48.png</div>
+        <div>icons/favicon-64.png</div>
+        <div>icons/apple-touch-icon.png</div>
+        <div>icons/icon-192.png</div>
+        <div>icons/icon-512.png</div>
+        <div>icons/icon-192-maskable.png</div>
+        <div>icons/icon-512-maskable.png</div>
+        <div>icons/logo-full.png</div>
+        <div>site.webmanifest</div>
+        <div>head-snippet.html</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
