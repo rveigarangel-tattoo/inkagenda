@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { InkagendaLogo } from "@/components/ui/logo"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,9 +30,9 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Left — branding (desktop only) */}
-      <div className="hidden lg:flex lg:w-5/12 flex-col items-center justify-center gap-6 bg-primary/5 border-r border-border p-16">
-        <img src="/logo.svg" alt="inkagenda" className="logo-primary w-56" />
-        <p className="text-center text-muted-foreground text-sm max-w-xs leading-relaxed">
+      <div className="hidden lg:flex lg:w-5/12 flex-col items-center justify-center gap-4 border-r border-border bg-primary/5 p-16">
+        <InkagendaLogo />
+        <p className="mt-2 text-center text-sm text-muted-foreground max-w-xs leading-relaxed">
           Gestão completa para estúdios de tatuagem — agenda, clientes, finanças e equipe num só lugar.
         </p>
       </div>
@@ -39,7 +40,7 @@ export default function LoginPage() {
       {/* Right — form */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         {/* Mobile logo */}
-        <img src="/logo.svg" alt="inkagenda" className="logo-primary mb-10 w-40 lg:hidden" />
+        <InkagendaLogo className="mb-10 lg:hidden" />
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
@@ -66,7 +67,7 @@ export default function LoginPage() {
           </p>
           <p className="mt-3 text-center text-sm text-muted-foreground">
             Novo estúdio?{" "}
-            <a href="/register" className="text-primary font-medium hover:underline">
+            <a href="/register" className="font-medium text-primary hover:underline">
               Criar conta gratuita
             </a>
           </p>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
+import { InkagendaLogo } from "@/components/ui/logo"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -51,8 +52,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="inkagenda" className="mb-4 w-32 object-contain logo-primary" />
-          <p className="text-sm text-muted-foreground">Crie a conta do seu estúdio</p>
+          <InkagendaLogo className="mb-2" />
+          <p className="mt-1 text-sm text-muted-foreground">Crie a conta do seu estúdio</p>
         </div>
         <Card>
           <CardContent className="p-6">

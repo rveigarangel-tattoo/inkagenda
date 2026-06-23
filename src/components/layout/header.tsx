@@ -3,6 +3,7 @@ import { signOut, useSession } from "next-auth/react"
 import { LogOut, Moon, Sun, Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
+import { InkagendaIcon } from "@/components/ui/logo"
 import { Button } from "@/components/ui/button"
 import { CommandPalette } from "@/components/ui/command-palette"
 
@@ -28,7 +29,10 @@ export function Header() {
   const user = session?.user
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      <img src="/logo.svg" alt="inkagenda" className="logo-primary h-9 object-contain md:hidden" />
+      <div className="flex items-center gap-2 md:hidden">
+        <InkagendaIcon className="h-7 w-7 text-primary" />
+        <span className="text-base font-light tracking-widest text-foreground">inkagenda</span>
+      </div>
       {/* Cmd+K search button — desktop only */}
       <button
         onClick={openPalette}
