@@ -45,7 +45,7 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="inkagenda" className="mb-4 w-32 object-contain brightness-0 invert" />
+          <img src="/logo.svg" alt="inkagenda" className="mb-4 w-32 object-contain logo-primary" />
           <h1 className="text-2xl font-bold">Configure seu Estúdio</h1>
           <p className="text-sm text-muted-foreground">Leva menos de 1 minuto para começar</p>
         </div>

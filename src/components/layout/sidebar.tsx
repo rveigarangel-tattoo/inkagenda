@@ -44,7 +44,7 @@ export function Sidebar({ role }: { role: string }) {
         <img
           src="/logo.svg"
           alt="inkagenda"
-          className={cn("shrink-0 object-contain brightness-0 invert", collapsed ? "h-7 w-7" : "h-9")}
+          className={cn("logo-primary shrink-0 object-contain", collapsed ? "h-8 w-8" : "h-11")}
         />
       </div>
 

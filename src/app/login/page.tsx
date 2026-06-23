@@ -28,18 +28,18 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center bg-primary/10 border-r border-border p-12">
-        <img src="/logo.svg" alt="inkagenda" className="w-48 brightness-0 invert mb-8" />
+      {/* Left — branding (desktop only) */}
+      <div className="hidden lg:flex lg:w-5/12 flex-col items-center justify-center gap-6 bg-primary/5 border-r border-border p-16">
+        <img src="/logo.svg" alt="inkagenda" className="logo-primary w-56" />
         <p className="text-center text-muted-foreground text-sm max-w-xs leading-relaxed">
           Gestão completa para estúdios de tatuagem — agenda, clientes, finanças e equipe num só lugar.
         </p>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
+      {/* Right — form */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         {/* Mobile logo */}
-        <img src="/logo.svg" alt="inkagenda" className="mb-8 w-32 brightness-0 invert lg:hidden" />
+        <img src="/logo.svg" alt="inkagenda" className="logo-primary mb-10 w-40 lg:hidden" />
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
@@ -50,27 +50,11 @@ export default function LoginPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="admin@inkflow.com"
-                className="h-11"
-              />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@inkflow.com" className="h-11" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="h-11"
-              />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="h-11" />
             </div>
             <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}

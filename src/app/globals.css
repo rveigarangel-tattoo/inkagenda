@@ -49,6 +49,13 @@
   }
 }
 
+@layer utilities {
+  /* Recolors black SVGs to match primary hsl(262 83% 58%) */
+  .logo-primary {
+    filter: brightness(0) saturate(100%) invert(28%) sepia(90%) saturate(1400%) hue-rotate(248deg) brightness(100%) contrast(95%);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

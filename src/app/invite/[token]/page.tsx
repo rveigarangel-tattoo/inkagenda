@@ -110,7 +110,7 @@ export default function InvitePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="inkagenda" className="mb-4 w-32 object-contain brightness-0 invert" />
+          <img src="/logo.svg" alt="inkagenda" className="mb-4 w-32 object-contain logo-primary" />
           <p className="text-sm text-muted-foreground">Você foi convidado para o estúdio</p>
         </div>
 
