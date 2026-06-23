@@ -193,7 +193,7 @@ export default function ArtistEarningsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="hidden sm:table-cell whitespace-nowrap">Data</TableHead>
+                    <TableHead className="whitespace-nowrap">Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="hidden md:table-cell">Serviço</TableHead>
                     <TableHead className="text-right whitespace-nowrap w-28">Valor</TableHead>
@@ -205,7 +205,7 @@ export default function ArtistEarningsPage() {
                     .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                     .map((a) => (
                       <TableRow key={a.id}>
-                        <TableCell className="hidden sm:table-cell whitespace-nowrap">{formatDate(a.date, "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(a.date, "dd/MM/yyyy")}</TableCell>
                         <TableCell>{a.client?.name}</TableCell>
                         <TableCell className="hidden md:table-cell">{a.service}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{formatCurrency(a.value ?? 0)}</TableCell>
@@ -215,8 +215,8 @@ export default function ArtistEarningsPage() {
                       </TableRow>
                     ))}
                   <TableRow className="border-t-2">
-                    <TableCell className="hidden sm:table-cell font-semibold">Total</TableCell>
-                    <TableCell className="font-semibold"><span className="sm:hidden">Total</span></TableCell>
+                    <TableCell className="font-semibold">Total</TableCell>
+                    <TableCell />
                     <TableCell className="hidden md:table-cell" />
                     <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(totals.revenue)}</TableCell>
                     <TableCell className="text-right font-semibold whitespace-nowrap text-primary">{formatCurrency(totals.share)}</TableCell>
