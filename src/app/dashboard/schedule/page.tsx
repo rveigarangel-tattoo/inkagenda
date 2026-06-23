@@ -12,15 +12,20 @@ import { cn, formatCurrency, formatTime } from "@/lib/utils"
 import { toast } from "sonner"
 import type { Appointment, User } from "@/types"
 
-const START_HOUR = 8
-const END_HOUR = 22
+const START_HOUR = 1
+const END_HOUR = 24
 const HOUR_HEIGHT = 60 // px per hour (= 1px per min)
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60
 const SNAP = 15 // snap to 15-min increments
+const SCROLL_TARGET_HOUR = 8 // auto-scroll to 8am on load
 
 type ViewMode = "week" | "team" | "month" | "day"
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+function formatHour(h: number): string {
+  const display = h >= 24 ? h - 24 : h
+  return `${String(display).padStart(2, "0")}:00`
+}
 function minutesFromDate(d: Date): number {
   return (d.getHours() - START_HOUR) * 60 + d.getMinutes()
 }
@@ -233,12 +238,14 @@ function MonthView({
   isDark,
   onEdit,
   onNewDay,
+  onDayView,
 }: {
   monthStart: Date
   appointments: Appointment[]
   isDark: boolean
   onEdit: (a: Appointment) => void
   onNewDay: (date: Date) => void
+  onDayView: (date: Date) => void
 }) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   useEffect(() => { setSelectedDay(null) }, [monthStart])
@@ -297,9 +304,11 @@ function MonthView({
               )}
             >
               <div
+                onClick={(e) => { e.stopPropagation(); onDayView(day) }}
+                title={`Ver dia ${format(day, "dd/MM/yyyy")}`}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium mb-1 shrink-0",
-                  isToday ? "bg-primary text-primary-foreground" : "text-foreground"
+                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium mb-1 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all",
+                  isToday ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-primary/10"
                 )}
               >
                 {format(day, "d")}
@@ -403,6 +412,15 @@ export default function SchedulePage() {
   const [selected, setSelected] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | undefined>()
   const [hoverState, setHoverState] = useState<{ appt: Appointment; rect: DOMRect } | null>(null)
+
+  // scroll ref for auto-scroll to working hours
+  const gridScrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (viewMode !== "month") {
+      const target = (SCROLL_TARGET_HOUR - START_HOUR) * HOUR_HEIGHT - 40
+      gridScrollRef.current?.scrollTo({ top: Math.max(0, target), behavior: "smooth" })
+    }
+  }, [viewMode])
 
   // drag state
   const dragData = useRef<{ apptId: string; offsetY: number } | null>(null)
@@ -686,7 +704,7 @@ export default function SchedulePage() {
       </div>
 
       {/* ── calendar grid ───────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div ref={gridScrollRef} className="flex-1 overflow-auto">
         {loading ? (
           <div className="p-4"><Skeleton className="h-[600px] w-full" /></div>
         ) : viewMode === "month" ? (
@@ -700,6 +718,7 @@ export default function SchedulePage() {
               setDefaultDate(date)
               setSheetOpen(true)
             }}
+            onDayView={(date) => { setDayDate(date); setViewMode("day") }}
           />
         ) : (
           <div className={viewMode === "day" ? "" : "min-w-[640px]"}>
@@ -709,7 +728,13 @@ export default function SchedulePage() {
               {columns.map((col) => (
                 <div
                   key={col.key}
-                  className={cn("flex-1 border-l py-2 text-center text-xs", col.isToday && "text-primary")}
+                  onClick={viewMode === "week" ? () => { setDayDate(col.date); setViewMode("day") } : undefined}
+                  className={cn(
+                    "flex-1 border-l py-2 text-center text-xs",
+                    col.isToday && "text-primary",
+                    viewMode === "week" && "cursor-pointer hover:bg-accent/40 transition-colors select-none"
+                  )}
+                  title={viewMode === "week" ? `Ver ${col.label}` : undefined}
                 >
                   {viewMode === "team" ? (
                     <div className="flex items-center justify-center gap-1.5">
@@ -736,7 +761,7 @@ export default function SchedulePage() {
                     className="relative pr-2 text-right text-[11px] text-muted-foreground"
                     style={{ height: HOUR_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-2">{String(h).padStart(2, "0")}:00</span>
+                    <span className="absolute -top-2 right-2">{formatHour(h)}</span>
                   </div>
                 ))}
               </div>

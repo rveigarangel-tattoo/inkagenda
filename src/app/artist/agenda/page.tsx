@@ -15,12 +15,17 @@ import { cn, formatCurrency, formatTime } from "@/lib/utils"
 import { toast } from "sonner"
 import type { Appointment } from "@/types"
 
-const START_HOUR = 8
-const END_HOUR = 22
+const START_HOUR = 1
+const END_HOUR = 24
 const HOUR_HEIGHT = 60
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60
 const SNAP = 15
+const SCROLL_TARGET_HOUR = 8
 
+function formatHour(h: number): string {
+  const display = h >= 24 ? h - 24 : h
+  return `${String(display).padStart(2, "0")}:00`
+}
 function minutesFromDate(d: Date) {
   return (d.getHours() - START_HOUR) * 60 + d.getMinutes()
 }
@@ -241,9 +246,10 @@ interface MonthViewProps {
   appointments: Appointment[]
   onEdit: (a: Appointment) => void
   onNewDay: (day: Date) => void
+  onDayView: (day: Date) => void
 }
 
-function MonthView({ monthStart, appointments, onEdit, onNewDay }: MonthViewProps) {
+function MonthView({ monthStart, appointments, onEdit, onNewDay, onDayView }: MonthViewProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
 
   const gridStart = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 })
@@ -283,10 +289,13 @@ function MonthView({ monthStart, appointments, onEdit, onNewDay }: MonthViewProp
                 isToday && !isSelected && "bg-primary/5"
               )}
             >
-              <div className={cn(
-                "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                isToday ? "bg-primary text-primary-foreground" : ""
-              )}>
+              <div
+                onClick={(e) => { e.stopPropagation(); onDayView(day) }}
+                className={cn(
+                  "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all",
+                  isToday ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-primary/10"
+                )}
+              >
                 {format(day, "d")}
               </div>
               <div className="space-y-0.5">
@@ -383,6 +392,14 @@ export default function ArtistAgendaPage() {
   const [selected, setSelected] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | undefined>()
   const [hoverState, setHoverState] = useState<{ appt: Appointment; rect: DOMRect } | null>(null)
+
+  const gridScrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (viewMode !== "month") {
+      const target = (SCROLL_TARGET_HOUR - START_HOUR) * HOUR_HEIGHT - 40
+      gridScrollRef.current?.scrollTo({ top: Math.max(0, target), behavior: "smooth" })
+    }
+  }, [viewMode])
 
   const dragData = useRef<{ apptId: string; offsetY: number } | null>(null)
   const resizeData = useRef<{ apptId: string; startY: number; startDuration: number } | null>(null)
@@ -626,7 +643,7 @@ export default function ArtistAgendaPage() {
       </div>
 
       {/* calendar content */}
-      <div className="flex-1 overflow-auto">
+      <div ref={gridScrollRef} className="flex-1 overflow-auto">
         {loading ? (
           <div className="p-4"><Skeleton className="h-[600px] w-full" /></div>
         ) : viewMode === "month" ? (
@@ -635,6 +652,7 @@ export default function ArtistAgendaPage() {
             appointments={appointments}
             onEdit={openEdit}
             onNewDay={openNewFromDay}
+            onDayView={(date) => { setDayDate(date); setViewMode("day") }}
           />
         ) : (
           <div className={viewMode !== "day" ? "min-w-[640px]" : ""}>
@@ -646,7 +664,15 @@ export default function ArtistAgendaPage() {
                 const label = format(day, "EEE dd", { locale: ptBR })
                 const [dayName, dayNum] = [label.split(" ")[0], label.split(" ").pop()]
                 return (
-                  <div key={day.toISOString()} className={cn("flex-1 border-l py-2 text-center text-xs", isToday && "text-primary")}>
+                  <div
+                    key={day.toISOString()}
+                    onClick={viewMode === "week" ? () => { setDayDate(day); setViewMode("day") } : undefined}
+                    className={cn(
+                      "flex-1 border-l py-2 text-center text-xs",
+                      isToday && "text-primary",
+                      viewMode === "week" && "cursor-pointer hover:bg-accent/40 transition-colors select-none"
+                    )}
+                  >
                     <p className="uppercase text-muted-foreground">{dayName.slice(0, 3)}</p>
                     <p className={cn("text-base font-semibold", isToday && "text-primary")}>{dayNum}</p>
                   </div>
@@ -663,7 +689,7 @@ export default function ArtistAgendaPage() {
                     className="relative pr-2 text-right text-[11px] text-muted-foreground"
                     style={{ height: HOUR_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-2">{String(h).padStart(2, "0")}:00</span>
+                    <span className="absolute -top-2 right-2">{formatHour(h)}</span>
                   </div>
                 ))}
               </div>
