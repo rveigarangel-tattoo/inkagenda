@@ -45,9 +45,7 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3">
-            <img src="/logo.png" alt="InkFlow" className="h-14 w-14 object-contain" />
-          </div>
+          <img src="/logo.svg" alt="InkFlow" className="mb-2 h-28 object-contain" />
           <h1 className="text-2xl font-bold">Configure seu Estúdio</h1>
           <p className="text-sm text-muted-foreground">Leva menos de 1 minuto para começar</p>
         </div>

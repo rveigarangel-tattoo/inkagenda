@@ -28,10 +28,7 @@ export function Header() {
   const user = session?.user
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      <div className="flex items-center gap-2 md:hidden">
-        <img src="/logo.png" alt="InkFlow" className="h-8 w-8 object-contain" />
-        <span className="text-lg font-bold">InkFlow</span>
-      </div>
+      <img src="/logo.svg" alt="InkFlow" className="h-9 object-contain md:hidden" />
       {/* Cmd+K search button — desktop only */}
       <button
         onClick={openPalette}

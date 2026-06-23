@@ -40,9 +40,8 @@ export function Sidebar({ role }: { role: string }) {
       )}
     >
       {/* Logo */}
-      <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "gap-2 px-4")}>
-        <img src="/logo.png" alt="InkFlow" className="h-8 w-8 shrink-0 object-contain" />
-        {!collapsed && <span className="text-lg font-bold">InkFlow</span>}
+      <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "px-4")}>
+        <img src="/logo.svg" alt="InkFlow" className={cn("shrink-0 object-contain", collapsed ? "h-8 w-8" : "h-10")} />
       </div>
 
       {/* Nav */}

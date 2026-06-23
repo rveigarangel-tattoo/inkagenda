@@ -110,10 +110,7 @@ export default function InvitePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3">
-            <img src="/logo.png" alt="InkFlow" className="h-14 w-14 object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold">InkFlow</h1>
+          <img src="/logo.svg" alt="InkFlow" className="mb-2 h-28 object-contain" />
           <p className="text-sm text-muted-foreground">Você foi convidado para o estúdio</p>
         </div>
 
