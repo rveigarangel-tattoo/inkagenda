@@ -196,8 +196,8 @@ export default function ArtistEarningsPage() {
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="hidden sm:table-cell">Serviço</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Minha Parte</TableHead>
+                    <TableHead className="text-right w-28">Valor</TableHead>
+                    <TableHead className="text-right w-28">Minha Parte</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -215,7 +215,9 @@ export default function ArtistEarningsPage() {
                       </TableRow>
                     ))}
                   <TableRow>
-                    <TableCell colSpan={3} className="font-semibold">Total</TableCell>
+                    <TableCell className="font-semibold">Total</TableCell>
+                    <TableCell className="hidden sm:table-cell" />
+                    <TableCell className="hidden sm:table-cell" />
                     <TableCell className="text-right font-semibold">{formatCurrency(totals.revenue)}</TableCell>
                     <TableCell className="text-right font-semibold text-primary">{formatCurrency(totals.share)}</TableCell>
                   </TableRow>
