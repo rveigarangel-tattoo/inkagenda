@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
   LayoutDashboard, Calendar, Users, Wallet, Palette, Settings,
-  CalendarDays, UserCircle, TrendingUp, ChevronLeft, Syringe, ArrowLeftRight,
+  CalendarDays, UserCircle, TrendingUp, ChevronLeft, ArrowLeftRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -41,9 +41,7 @@ export function Sidebar({ role }: { role: string }) {
     >
       {/* Logo */}
       <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "gap-2 px-4")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Syringe className="h-5 w-5" />
-        </div>
+        <img src="/logo.png" alt="InkFlow" className="h-8 w-8 shrink-0 object-contain" />
         {!collapsed && <span className="text-lg font-bold">InkFlow</span>}
       </div>
 
