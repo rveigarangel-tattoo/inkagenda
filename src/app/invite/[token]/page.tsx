@@ -2,8 +2,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { AlertCircle } from "lucide-react"
-import { InkagendaLogo } from "@/components/ui/logo"
+import { Syringe, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -111,8 +110,11 @@ export default function InvitePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <InkagendaLogo className="mb-2" />
-          <p className="mt-1 text-sm text-muted-foreground">Você foi convidado para o estúdio</p>
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <Syringe className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-bold">InkFlow</h1>
+          <p className="text-sm text-muted-foreground">Você foi convidado para o estúdio</p>
         </div>
 
         <div className="mb-6 flex flex-col items-center gap-3 rounded-xl border bg-card p-5 text-center">

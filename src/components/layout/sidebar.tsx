@@ -4,10 +4,9 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
   LayoutDashboard, Calendar, Users, Wallet, Palette, Settings,
-  CalendarDays, UserCircle, TrendingUp, ChevronLeft, ArrowLeftRight,
+  CalendarDays, UserCircle, TrendingUp, ChevronLeft, Syringe, ArrowLeftRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { InkagendaIcon } from "@/components/ui/logo"
 
 const adminNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -41,11 +40,11 @@ export function Sidebar({ role }: { role: string }) {
       )}
     >
       {/* Logo */}
-      <div className={cn("flex h-16 items-center gap-2.5 border-b", collapsed ? "justify-center px-2" : "px-4")}>
-        <InkagendaIcon className={cn("shrink-0 text-primary", collapsed ? "h-7 w-7" : "h-8 w-8")} />
-        {!collapsed && (
-          <span className="text-base font-light tracking-widest text-foreground">inkagenda</span>
-        )}
+      <div className={cn("flex h-16 items-center border-b", collapsed ? "justify-center px-0" : "gap-2 px-4")}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Syringe className="h-5 w-5" />
+        </div>
+        {!collapsed && <span className="text-lg font-bold">InkFlow</span>}
       </div>
 
       {/* Nav */}

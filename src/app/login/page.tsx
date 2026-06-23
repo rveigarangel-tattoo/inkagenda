@@ -2,11 +2,12 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { Syringe } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { InkagendaLogo } from "@/components/ui/logo"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,50 +29,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left — branding (desktop only) */}
-      <div className="hidden lg:flex lg:w-5/12 flex-col items-center justify-center gap-4 border-r border-border bg-primary/5 p-16">
-        <InkagendaLogo />
-        <p className="mt-2 text-center text-sm text-muted-foreground max-w-xs leading-relaxed">
-          Gestão completa para estúdios de tatuagem — agenda, clientes, finanças e equipe num só lugar.
-        </p>
-      </div>
-
-      {/* Right — form */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
-        {/* Mobile logo */}
-        <InkagendaLogo className="mb-10 lg:hidden" />
-
-        <div className="w-full max-w-sm">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold">Bem-vindo de volta</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Entre na sua conta para continuar</p>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <Syringe className="h-7 w-7" />
           </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@inkflow.com" className="h-11" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="h-11" />
-            </div>
-            <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
-
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Demo: admin@inkflow.com / Admin@123
-          </p>
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            Novo estúdio?{" "}
-            <a href="/register" className="font-medium text-primary hover:underline">
-              Criar conta gratuita
-            </a>
-          </p>
+          <h1 className="text-3xl font-bold">InkFlow</h1>
+          <p className="text-sm text-muted-foreground">Gestão de estúdio de tatuagem</p>
         </div>
+        <Card>
+          <CardContent className="p-6">
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@inkflow.com" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
+              </Button>
+            </form>
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Demo: admin@inkflow.com / Admin@123
+            </p>
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Novo estúdio?{" "}
+              <a href="/register" className="text-primary hover:underline">
+                Criar conta gratuita
+              </a>
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
