@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Syringe, CheckCircle } from "lucide-react"
+import { CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,8 +45,8 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <Syringe className="h-7 w-7" />
+          <div className="mb-3">
+            <img src="/logo.png" alt="InkFlow" className="h-14 w-14 object-contain" />
           </div>
           <h1 className="text-2xl font-bold">Configure seu Estúdio</h1>
           <p className="text-sm text-muted-foreground">Leva menos de 1 minuto para começar</p>
