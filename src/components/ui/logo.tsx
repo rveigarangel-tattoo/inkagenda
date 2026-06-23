@@ -3,22 +3,36 @@ import { cn } from "@/lib/utils"
 export function InkagendaIcon({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 60 70"
+      viewBox="0 0 100 110"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
     >
+      {/*
+        Combined path with evenodd:
+        - Outer silhouette: calendar body + two thick hooks (one continuous path)
+        - Subpath 1: horizontal separator line (cutout)
+        - Subpath 2: ink drop / teardrop (cutout)
+      */}
       <path
         fillRule="evenodd"
         clipRule="evenodd"
         d="
-          M13 20 L17 20 L17 3 Q17 0 20 0 Q23 0 23 3 L23 20
-          L37 20 L37 3 Q37 0 40 0 Q43 0 43 3 L43 20
-          L47 20 Q53 20 53 26 L53 62 Q53 68 47 68
-          L13 68 Q7 68 7 62 L7 26 Q7 20 13 20 Z
-          M7 27 L53 27 L53 32 L7 32 Z
-          M30 37 C22 44 18 52 18 56 A12 12 0 0 0 42 56 C42 52 38 44 30 37 Z
+          M 17 20
+          L 25 20 L 25 5 Q 25 0 30 0 L 34 0 Q 39 0 39 5 L 39 20
+          L 61 20 L 61 5 Q 61 0 66 0 L 70 0 Q 75 0 75 5 L 75 20
+          L 83 20 Q 95 20 95 32
+          L 95 88 Q 95 100 83 100
+          L 17 100 Q 5 100 5 88
+          L 5 32 Q 5 20 17 20 Z
+
+          M 5 34 L 95 34 L 95 41 L 5 41 Z
+
+          M 50 50
+          C 39 61 35 71 35 77
+          A 15 15 0 0 1 65 77
+          C 65 71 61 61 50 50 Z
         "
       />
     </svg>
