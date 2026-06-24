@@ -80,15 +80,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-[18px] text-center text-xs text-[#6b6b6b]">
-            Demo: admin@inkagenda.com / Admin@123
-          </p>
-          <p className="mt-1.5 text-center text-[13px] text-[#9a9a9a]">
-            Novo estúdio?{" "}
-            <a href="/register" className="text-[#a78bfa] hover:underline">
-              Criar conta gratuita
-            </a>
-          </p>
         </div>
       </div>
     </div>
