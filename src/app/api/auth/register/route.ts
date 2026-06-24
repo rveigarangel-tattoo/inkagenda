@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { studioName, name, email, password } = body
+  const { studioName, name, username, email, password } = body
 
   if (!studioName || !name || !email || !password) {
     return NextResponse.json({ error: "Campos obrigatórios faltando" }, { status: 400 })
@@ -18,6 +18,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email já cadastrado" }, { status: 409 })
   }
 
+  const cleanUsername = username ? username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") : null
+  if (cleanUsername) {
+    if (cleanUsername.length < 3) {
+      return NextResponse.json({ error: "Username deve ter pelo menos 3 caracteres" }, { status: 400 })
+    }
+    const usernameConflict = await prisma.user.findUnique({ where: { username: cleanUsername } })
+    if (usernameConflict) {
+      return NextResponse.json({ error: "Username já em uso" }, { status: 409 })
+    }
+  }
+
   const hashed = await bcrypt.hash(password, 10)
 
   const studio = await prisma.studio.create({
@@ -29,6 +40,7 @@ export async function POST(req: NextRequest) {
       studioId: studio.id,
       name,
       email,
+      username: cleanUsername || null,
       password: hashed,
       role: "admin",
       commissionPct: 0,

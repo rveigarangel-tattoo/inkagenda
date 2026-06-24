@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
   if (invite.expiresAt < new Date()) return NextResponse.json({ error: "Convite expirado" }, { status: 410 })
 
   const body = await req.json()
-  const { name, email, phone, password } = body
+  const { name, email, phone, username, password } = body
 
   if (!email || !password) {
     return NextResponse.json({ error: "Email e senha são obrigatórios" }, { status: 400 })
@@ -48,6 +48,12 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) return NextResponse.json({ error: "Email já cadastrado" }, { status: 409 })
 
+  const cleanUsername = username ? username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") : null
+  if (cleanUsername) {
+    const usernameConflict = await prisma.user.findUnique({ where: { username: cleanUsername } })
+    if (usernameConflict) return NextResponse.json({ error: "Username já em uso" }, { status: 409 })
+  }
+
   const count = await prisma.user.count({ where: { studioId: invite.studioId, role: invite.role } })
   const hashed = await bcrypt.hash(password, 10)
 
@@ -56,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       studioId: invite.studioId,
       name: name || invite.name,
       email,
+      username: cleanUsername || null,
       phone: phone || invite.phone || null,
       password: hashed,
       role: invite.role,

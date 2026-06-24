@@ -44,6 +44,7 @@ model User {
   studioId             String
   name                 String
   email                String       @unique
+  username             String?      @unique
   password             String
   role                 String       @default("artist")
   isArtist             Boolean      @default(false)

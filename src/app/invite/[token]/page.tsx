@@ -27,7 +27,7 @@ export default function InvitePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "", username: "", password: "", confirm: "" })
 
   useEffect(() => {
     fetch(`/api/invites/${token}`)
@@ -59,7 +59,7 @@ export default function InvitePage() {
     const res = await fetch(`/api/invites/${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, password: form.password }),
+      body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, username: form.username || null, password: form.password }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -143,6 +143,11 @@ export default function InvitePage() {
               <div className="space-y-2">
                 <Label>Telefone</Label>
                 <Input value={form.phone} onChange={set("phone")} placeholder="(11) 9xxxx-xxxx" />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <Input value={form.username} onChange={set("username")} placeholder="meu_username" className="lowercase" />
+                <p className="text-xs text-muted-foreground">Opcional — para login sem email</p>
               </div>
               <div className="space-y-2">
                 <Label>Senha *</Label>

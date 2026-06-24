@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const res = await signIn("credentials", { email, password, redirect: false })
+    const res = await signIn("credentials", { login, password, redirect: false })
     setLoading(false)
     if (res?.error) {
       toast.error("Email ou senha inválidos")
@@ -49,11 +49,11 @@ export default function LoginPage() {
         <div className="w-full rounded-[14px] border border-[#262626] bg-[#161616] p-7">
           <form onSubmit={onSubmit} className="space-y-[18px]">
             <div>
-              <Label className="mb-2 block text-[13px] font-semibold text-white">Email</Label>
+              <Label className="mb-2 block text-[13px] font-semibold text-white">Email ou username</Label>
               <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
                 required
                 placeholder="admin@inkagenda.com"
                 className="rounded-[9px] border-[#2a2a2a] bg-[#0e0e0e] text-sm text-white placeholder:text-[#6b6b6b] focus-visible:ring-[#7c3aed]"

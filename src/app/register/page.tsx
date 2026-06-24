@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card"
 export default function RegisterPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ studioName: "", name: "", email: "", password: "", confirm: "" })
+  const [form, setForm] = useState({ studioName: "", name: "", username: "", email: "", password: "", confirm: "" })
 
   function set(k: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) => setForm((p) => ({ ...p, [k]: e.target.value }))
@@ -29,7 +29,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studioName: form.studioName, name: form.name, email: form.email, password: form.password }),
+      body: JSON.stringify({ studioName: form.studioName, name: form.name, username: form.username, email: form.email, password: form.password }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -68,6 +68,11 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label>Seu Nome *</Label>
                 <Input value={form.name} onChange={set("name")} required placeholder="Marcos Silva" />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <Input value={form.username} onChange={set("username")} placeholder="marcos_silva" className="lowercase" />
+                <p className="text-xs text-muted-foreground">Opcional — para login sem email</p>
               </div>
               <div className="space-y-2">
                 <Label>Email *</Label>

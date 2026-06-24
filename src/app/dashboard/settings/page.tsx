@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
-import { LogOut, Moon, Brush } from "lucide-react"
+import { LogOut, Moon, Brush, KeyRound, AtSign } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,11 +16,18 @@ export default function SettingsPage() {
 
   const [profile, setProfile] = useState<any>(null)
   const [saving, setSaving] = useState(false)
+  const [savingPwd, setSavingPwd] = useState(false)
+  const [savingUsername, setSavingUsername] = useState(false)
+  const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" })
+  const [username, setUsername] = useState("")
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
-      .then(setProfile)
+      .then((d) => {
+        setProfile(d)
+        setUsername(d.username ?? "")
+      })
   }, [])
 
   async function saveArtistProfile() {
@@ -41,6 +48,47 @@ export default function SettingsPage() {
       toast.error("Erro ao salvar")
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function saveUsername(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingUsername(true)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || "Erro ao salvar"); return }
+      setUsername(data.username ?? "")
+      toast.success("Username salvo")
+    } catch {
+      toast.error("Erro ao salvar")
+    } finally {
+      setSavingUsername(false)
+    }
+  }
+
+  async function savePassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (pwd.next !== pwd.confirm) { toast.error("As senhas não coincidem"); return }
+    setSavingPwd(true)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwd.current, newPassword: pwd.next }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || "Erro ao alterar senha"); return }
+      setPwd({ current: "", next: "", confirm: "" })
+      toast.success("Senha alterada com sucesso")
+    } catch {
+      toast.error("Erro ao alterar senha")
+    } finally {
+      setSavingPwd(false)
     }
   }
 
@@ -70,6 +118,77 @@ export default function SettingsPage() {
               <Label>Função</Label>
               <Input value={user.role === "admin" ? "Administrador" : "Tatuador"} readOnly />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AtSign className="h-5 w-5 text-primary" />
+              Username
+            </CardTitle>
+            <CardDescription>Use seu username para fazer login em vez do email</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={saveUsername} className="flex gap-2">
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="meu_username"
+                className="lowercase"
+              />
+              <Button type="submit" disabled={savingUsername}>
+                {savingUsername ? "Salvando..." : "Salvar"}
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">Apenas letras, números e _ (mínimo 3 caracteres)</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Alterar Senha
+            </CardTitle>
+            <CardDescription>Escolha uma senha forte com pelo menos 6 caracteres</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={savePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Senha atual</Label>
+                <Input
+                  type="password"
+                  value={pwd.current}
+                  onChange={(e) => setPwd((p) => ({ ...p, current: e.target.value }))}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nova senha</Label>
+                <Input
+                  type="password"
+                  value={pwd.next}
+                  onChange={(e) => setPwd((p) => ({ ...p, next: e.target.value }))}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Confirmar nova senha</Label>
+                <Input
+                  type="password"
+                  value={pwd.confirm}
+                  onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button type="submit" disabled={savingPwd}>
+                {savingPwd ? "Alterando..." : "Alterar senha"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 

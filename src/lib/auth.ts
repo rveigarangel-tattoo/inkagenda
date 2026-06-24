@@ -10,12 +10,19 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        login: { label: "Email ou username", type: "text" },
         password: { label: "Senha", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        const user = await prisma.user.findUnique({ where: { email: credentials.email } })
+        if (!credentials?.login || !credentials?.password) return null
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: credentials.login },
+              { username: credentials.login },
+            ],
+          },
+        })
         if (!user || !user.isActive) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
