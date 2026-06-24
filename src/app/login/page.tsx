@@ -3,6 +3,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Syringe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,14 +33,12 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/icon-192.png"
-            alt="inkagenda"
-            width={72}
-            height={72}
-            style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(124,58,237,.35)" }}
-          />
+          <div
+            className="flex items-center justify-center bg-primary text-primary-foreground"
+            style={{ width: 72, height: 72, borderRadius: 18, boxShadow: "0 8px 24px rgba(124,58,237,.35)" }}
+          >
+            <Syringe className="h-9 w-9" />
+          </div>
           <h1 className="mt-[18px] mb-1.5 text-[30px] font-bold tracking-tight text-white">
             inkagenda
           </h1>

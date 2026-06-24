@@ -1,6 +1,6 @@
 "use client"
 import { signOut, useSession } from "next-auth/react"
-import { LogOut, Moon, Sun, Search } from "lucide-react"
+import { LogOut, Moon, Sun, Search, Syringe } from "lucide-react"
 import { useEffect, useState } from "react"
 import { AvatarInitials } from "@/components/ui/avatar-initials"
 import { Button } from "@/components/ui/button"
@@ -28,8 +28,9 @@ export function Header() {
   const user = session?.user
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="inkagenda" className="h-8 object-contain md:hidden" />
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground md:hidden">
+        <Syringe className="h-5 w-5" />
+      </div>
       {/* Cmd+K search button — desktop only */}
       <button
         onClick={openPalette}
