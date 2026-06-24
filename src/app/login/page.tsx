@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/icons/icon-192.png"
             alt="inkagenda"
             width={72}
             height={72}
