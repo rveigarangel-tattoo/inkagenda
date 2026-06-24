@@ -78,7 +78,12 @@ export default function LoginPage() {
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-
+          <p className="mt-[18px] text-center text-[13px] text-[#9a9a9a]">
+            Novo estúdio?{" "}
+            <a href="/register" className="text-[#a78bfa] hover:underline">
+              Criar conta gratuita
+            </a>
+          </p>
         </div>
       </div>
     </div>
